@@ -1,0 +1,874 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{multicol}
+\usepackage[table]{xcolor}
+\usepackage{colortbl}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}   
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{fontawesome5}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{microtype}
+\usepackage{iftex}
+% Font fallbacks: keep the PDF building even if optional fonts are missing.
+% Ensure sans-serif consistency
+\IfFileExists{raleway.sty}{
+    \usepackage[sfdefault]{raleway}
+}{
+    \usepackage{helvet}
+    \renewcommand{\familydefault}{\sfdefault}
+}
+\IfFileExists{sourcecodepro.sty}{\usepackage{sourcecodepro}}{\usepackage{inconsolata}}
+\usepackage{calc}
+\usepackage{graphicx}
+\tcbuselibrary{skins,breakable}
+
+% Page geometry - optimized margins
+\geometry{
+    left=1cm,
+    right=1cm,
+    top=1.5cm,
+    bottom=1cm
+}
+
+% Modern Color Palette - Dark theme inspired
+\definecolor{bgdark}{RGB}{30, 34, 42}
+\definecolor{bgcard}{RGB}{40, 44, 55}
+\definecolor{primaryblue}{RGB}{86, 156, 214}
+\definecolor{secondaryblue}{RGB}{78, 201, 176}
+\definecolor{accentpurple}{RGB}{198, 120, 221}
+\definecolor{accentorange}{RGB}{229, 192, 123}
+\definecolor{textlight}{RGB}{220, 223, 228}
+\definecolor{textmuted}{RGB}{150, 155, 165}
+\definecolor{codegreen}{RGB}{152, 195, 121}
+\definecolor{codered}{RGB}{224, 108, 117}
+\definecolor{codeyellow}{RGB}{229, 192, 123}
+\definecolor{warnorange}{RGB}{255, 170, 100}
+\definecolor{successgreen}{RGB}{152, 195, 121}
+\definecolor{dangerred}{RGB}{224, 108, 117}
+\definecolor{infocyan}{RGB}{97, 175, 239}
+\definecolor{codebg}{RGB}{50, 55, 68}
+\definecolor{sectionline}{RGB}{86, 156, 214}
+
+% Set page background
+\pagecolor{bgdark}
+\color{textlight}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryblue,
+    urlcolor=secondaryblue
+}
+
+% Layout sanity: avoid overfull boxes in tight 4-column layout
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\sloppy
+\emergencystretch=1em
+
+% Code listing style - modern dark theme
+\lstdefinestyle{cstyle}{
+    language=C,
+    basicstyle=\ttfamily\fontsize{8.5pt}{10pt}\selectfont\color{textlight},
+    keywordstyle=\color{accentpurple}\bfseries,
+    stringstyle=\color{codegreen},
+    commentstyle=\color{textmuted}\itshape,
+    identifierstyle=\color{textlight},
+    showstringspaces=false,
+    breaklines=true,
+    breakatwhitespace=false,
+    columns=fullflexible,
+    keepspaces=true,
+    tabsize=2,
+    frame=none,
+    backgroundcolor=\color{codebg},
+    xleftmargin=6pt,
+    xrightmargin=6pt,
+    aboveskip=6pt,
+    belowskip=6pt,
+    framesep=6pt,
+    rulecolor=\color{bgcard},
+    morekeywords={pthread_t, pthread_mutex_t, pthread_cond_t, pthread_attr_t, 
+                  pthread_rwlock_t, pthread_barrier_t, pthread_spinlock_t,
+                  pthread_key_t, pthread_once_t, size_t, sem_t, bool, NULL},
+    emph={pthread_create, pthread_join, pthread_exit, pthread_self,
+          pthread_mutex_lock, pthread_mutex_unlock, pthread_mutex_init,
+          pthread_cond_wait, pthread_cond_signal, pthread_cond_broadcast,
+          pthread_rwlock_rdlock, pthread_rwlock_wrlock, pthread_barrier_wait,
+          sem_wait, sem_post, printf, malloc, free},
+    emphstyle=\color{primaryblue},
+    literate={*}{{\textcolor{accentorange}{*}}}1
+             {&}{{\textcolor{accentorange}{\&}}}1
+}
+\lstset{style=cstyle}
+
+% Section formatting - sleek modern look
+\titleformat{\section}
+    {\normalfont\fontsize{14pt}{16pt}\selectfont\bfseries\color{primaryblue}}
+    {\thesection}{0em}{}
+\titlespacing{\section}{0pt}{8pt}{4pt}
+
+\titleformat{\subsection}
+    {\normalfont\fontsize{11pt}{13pt}\selectfont\bfseries\color{secondaryblue}}
+    {\thesubsection}{0em}{}
+\titlespacing{\subsection}{0pt}{6pt}{3pt}
+
+% Custom section command with icon and line
+\newcommand{\styledSection}[2]{%
+    \vspace{8pt}%
+    \noindent\textcolor{primaryblue}{\rule{\linewidth}{1.5pt}}\\[-8pt]
+    {\fontsize{14pt}{16pt}\selectfont\bfseries\color{primaryblue}#1\ #2}\\[-4pt]
+    \textcolor{primaryblue!50}{\rule{\linewidth}{0.8pt}}%
+    \vspace{4pt}%
+}
+
+\newcommand{\styledSubSection}[1]{%
+    \vspace{4pt}%
+    {\fontsize{11pt}{13pt}\selectfont\bfseries\color{secondaryblue}#1}%
+    \vspace{2pt}%
+}
+
+% Custom boxes - modern card style
+\tcbset{
+    boxrule=0pt,
+    arc=4pt,
+    outer arc=4pt,
+    left=6pt,
+    right=6pt,
+    top=5pt,
+    bottom=5pt,
+    fonttitle=\bfseries\fontsize{9pt}{11pt}\selectfont,
+    before skip=6pt,
+    after skip=6pt,
+    sharp corners=south
+}
+
+\newtcolorbox{funcbox}[1][]{
+    enhanced,
+    colback=bgcard,
+    colframe=primaryblue,
+    boxrule=1pt,
+    title=#1,
+    coltitle=white,
+    colbacktitle=primaryblue,
+    attach boxed title to top left={yshift=-2mm, xshift=3mm},
+    boxed title style={arc=2pt, outer arc=2pt}
+}
+
+\newtcolorbox{warnbox}{
+    enhanced,
+    colback=warnorange!8!bgdark,
+    colframe=warnorange,
+    boxrule=0pt,
+    borderline west={3pt}{0pt}{warnorange},
+    title={\footnotesize\faExclamationTriangle\ \textbf{Warning}},
+    coltitle=warnorange,
+    colbacktitle=warnorange!8!bgdark,
+    fonttitle=\fontsize{9pt}{11pt}\selectfont\bfseries,
+    attach boxed title to top left={yshift=-1mm, xshift=2mm},
+    boxed title style={boxrule=0pt, arc=0pt}
+}
+
+\newtcolorbox{tipbox}{
+    enhanced,
+    colback=successgreen!8!bgdark,
+    colframe=successgreen,
+    boxrule=0pt,
+    borderline west={3pt}{0pt}{successgreen},
+    title={\footnotesize\faLightbulb\ \textbf{Tip}},
+    coltitle=successgreen,
+    colbacktitle=successgreen!8!bgdark,
+    fonttitle=\fontsize{9pt}{11pt}\selectfont\bfseries,
+    attach boxed title to top left={yshift=-1mm, xshift=2mm},
+    boxed title style={boxrule=0pt, arc=0pt}
+}
+
+\newtcolorbox{infobox}{
+    enhanced,
+    colback=infocyan!8!bgdark,
+    colframe=infocyan,
+    boxrule=0pt,
+    borderline west={2.5pt}{0pt}{infocyan},
+    arc=3pt
+}
+
+\newtcolorbox{codebox}{
+    enhanced,
+    colback=codebg,
+    colframe=bgcard,
+    boxrule=0.5pt,
+    arc=3pt,
+    left=2pt,
+    right=2pt,
+    top=2pt,
+    bottom=2pt
+}
+
+% Compact lists with custom bullets
+\setlist{nosep, leftmargin=10pt, labelindent=0pt}
+\setlist[itemize]{label=\textcolor{primaryblue}{\tiny\faChevronRight}}
+\setlist[enumerate]{label=\textcolor{primaryblue}{\footnotesize\arabic*.}}
+
+% Remove page numbers
+\pagestyle{empty}
+
+% Column separator - subtle gradient effect
+\setlength{\columnseprule}{0.5pt}
+\def\columnseprulecolor{\color{primaryblue!40}}
+\setlength{\columnsep}{8pt}
+\setlength{\multicolsep}{2pt}
+\setlength{\premulticols}{0pt}
+\setlength{\postmulticols}{0pt}
+
+% Custom table style
+\newcommand{\tablestyle}{%
+    \renewcommand{\arraystretch}{1.3}%
+    \fontsize{9pt}{11pt}\selectfont%
+    \rowcolors{1}{bgcard}{bgdark}%
+}
+
+% Inline code style
+\newcommand{\code}[1]{\texttt{\small\color{accentorange}#1}}
+
+% Function name style
+\newcommand{\func}[1]{\texttt{\color{primaryblue}#1}}
+
+\begin{document}
+
+% Title - Modern header design
+\begin{tikzpicture}[remember picture, overlay]
+    \fill[primaryblue!18!bgdark] (current page.north west) rectangle ([yshift=-0.95cm]current page.north east);
+    \draw[primaryblue, line width=1.2pt] ([yshift=-0.95cm]current page.north west) -- ([yshift=-0.95cm]current page.north east);
+\end{tikzpicture}
+
+\begin{center}
+    {\fontsize{24pt}{28pt}\selectfont\bfseries\color{primaryblue} \faCodeBranch\ POSIX Threads (pthreads) Cheat Sheet}\\[6pt]
+    {\fontsize{11pt}{13pt}\selectfont\color{textmuted} Complete Reference for Multithreaded Programming in C \quad\textbar\quad \texttt{\#include <pthread.h>} \quad\textbar\quad Compile: \texttt{gcc -pthread}}
+\end{center}
+
+\vspace{8pt}
+
+\begin{multicols}{2}
+\raggedcolumns
+\fontsize{9.5pt}{11pt}\selectfont
+
+% ============================================================================
+% DATA TYPES
+% ============================================================================
+\styledSection{\faDatabase}{Data Types}
+
+\begin{tcolorbox}[enhanced, colback=bgcard, colframe=bgcard, boxrule=0pt, arc=3pt, left=3pt, right=3pt, top=2pt, bottom=2pt]
+\tablestyle
+\begin{tabular}{@{}>{\ttfamily\color{accentorange}}l@{\hspace{4pt}}>{\color{textmuted}}l@{}}
+pthread\_t & Thread identifier \\
+pthread\_attr\_t & Thread attributes \\
+pthread\_mutex\_t & Mutex lock \\
+pthread\_mutexattr\_t & Mutex attributes \\
+pthread\_cond\_t & Condition variable \\
+pthread\_condattr\_t & Condition attributes \\
+pthread\_rwlock\_t & Read-write lock \\
+pthread\_barrier\_t & Barrier sync \\
+pthread\_spinlock\_t & Spinlock \\
+pthread\_key\_t & Thread-local key \\
+pthread\_once\_t & Once control \\
+\end{tabular}
+\end{tcolorbox}
+
+% ============================================================================
+% THREAD MANAGEMENT
+% ============================================================================
+\styledSection{\faCogs}{Thread Management}
+
+\styledSubSection{Create \& Join}
+\begin{lstlisting}
+int pthread_create(
+    pthread_t *thread,
+    const pthread_attr_t *attr,
+    void *(*start_routine)(void*),
+    void *arg
+);
+
+int pthread_join(
+    pthread_t thread,
+    void **retval  // Get return value
+);
+\end{lstlisting}
+
+\styledSubSection{Other Functions}
+\begin{tcolorbox}[enhanced, colback=bgcard, colframe=bgcard, boxrule=0pt, arc=3pt, left=3pt, right=3pt, top=2pt, bottom=2pt]
+\tablestyle
+\begin{tabular}{@{}>{\ttfamily\color{primaryblue}}l@{\hspace{3pt}}>{\color{textmuted}}l@{}}
+pthread\_self() & Get current thread ID \\
+pthread\_equal(t1,t2) & Compare thread IDs \\
+pthread\_detach(t) & Auto-cleanup on exit \\
+pthread\_exit(ret) & Exit current thread \\
+\end{tabular}
+\end{tcolorbox}
+
+\begin{tipbox}
+\fontsize{9pt}{11pt}\selectfont
+\textcolor{textlight}{\textbf{Detached} threads free resources automatically.}\\
+\textcolor{textlight}{\textbf{Joinable} (default) must be joined to avoid memory leaks.}
+\end{tipbox}
+
+\styledSubSection{Basic Example}
+\begin{lstlisting}
+void* worker(void* arg) {
+    int id = *(int*)arg;
+    printf("Thread %d running\n", id);
+    return NULL;
+}
+
+int main() {
+    pthread_t t;
+    int arg = 42;
+    pthread_create(&t, NULL, worker, &arg);
+    pthread_join(t, NULL);
+    return 0;
+}
+\end{lstlisting}
+
+% ============================================================================
+% THREAD ATTRIBUTES
+% ============================================================================
+\styledSection{\faSlidersH}{Thread Attributes}
+
+\begin{lstlisting}
+pthread_attr_t attr;
+pthread_attr_init(&attr);
+
+// Detach state
+pthread_attr_setdetachstate(&attr, 
+    PTHREAD_CREATE_DETACHED);
+    // or PTHREAD_CREATE_JOINABLE
+
+// Stack size (e.g., 2MB)
+pthread_attr_setstacksize(&attr, 
+    2 * 1024 * 1024);
+
+// Scheduling policy
+pthread_attr_setschedpolicy(&attr,
+    SCHED_FIFO);  // or SCHED_RR
+
+pthread_attr_destroy(&attr);
+\end{lstlisting}
+
+% ============================================================================
+% MUTEXES
+% ============================================================================
+\styledSection{\faLock}{Mutexes}
+
+\styledSubSection{Basic Operations}
+\begin{lstlisting}
+// Static initialization
+pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+
+// Dynamic initialization
+pthread_mutex_init(&m, NULL);
+
+// Lock operations
+pthread_mutex_lock(&m);     // Blocking
+pthread_mutex_trylock(&m);  // Non-blocking
+pthread_mutex_unlock(&m);   // Release
+
+// Cleanup
+pthread_mutex_destroy(&m);
+\end{lstlisting}
+
+\styledSubSection{Timed Lock}
+\begin{lstlisting}
+struct timespec ts;
+clock_gettime(CLOCK_REALTIME, &ts);
+ts.tv_sec += 5;  // 5 second timeout
+
+int rc = pthread_mutex_timedlock(&m, &ts);
+if (rc == ETIMEDOUT) {
+    // Handle timeout
+}
+\end{lstlisting}
+
+\styledSubSection{Mutex Types}
+\begin{tcolorbox}[enhanced, colback=bgcard, colframe=bgcard, boxrule=0pt, arc=3pt, left=3pt, right=3pt, top=2pt, bottom=2pt]
+\tablestyle
+\begin{tabular}{@{}>{\ttfamily\color{accentpurple}}l@{\hspace{3pt}}>{\color{textmuted}}l@{}}
+NORMAL & Deadlock if re-locked \\
+ERRORCHECK & Returns error on re-lock \\
+RECURSIVE & Allows recursive locking \\
+\end{tabular}
+\end{tcolorbox}
+
+\begin{lstlisting}
+pthread_mutexattr_t attr;
+pthread_mutexattr_init(&attr);
+pthread_mutexattr_settype(&attr,
+    PTHREAD_MUTEX_RECURSIVE);
+pthread_mutex_init(&m, &attr);
+pthread_mutexattr_destroy(&attr);
+\end{lstlisting}
+
+\begin{warnbox}
+\fontsize{9pt}{11pt}\selectfont
+\textcolor{textlight}{Always unlock in the \textbf{same thread} that locked!\\Never unlock a mutex you don't own.}
+\end{warnbox}
+
+% ============================================================================
+% CONDITION VARIABLES
+% ============================================================================
+\styledSection{\faBell}{Condition Variables}
+
+\styledSubSection{Basic Operations}
+\begin{lstlisting}
+// Static initialization
+pthread_cond_t c = PTHREAD_COND_INITIALIZER;
+
+// Wait (atomically releases mutex)
+pthread_cond_wait(&c, &mutex);
+
+// Wait with timeout
+pthread_cond_timedwait(&c, &mutex, &ts);
+
+// Signal one waiting thread
+pthread_cond_signal(&c);
+
+// Signal ALL waiting threads
+pthread_cond_broadcast(&c);
+
+// Cleanup
+pthread_cond_destroy(&c);
+\end{lstlisting}
+
+\styledSubSection{Correct Usage Pattern}
+\begin{lstlisting}
+// === WAITER ===
+pthread_mutex_lock(&mutex);
+while (!condition) {    // Always WHILE!
+    pthread_cond_wait(&cond, &mutex);
+}
+// ... do protected work ...
+pthread_mutex_unlock(&mutex);
+
+// === SIGNALER ===
+pthread_mutex_lock(&mutex);
+condition = true;
+pthread_cond_signal(&cond);
+pthread_mutex_unlock(&mutex);
+\end{lstlisting}
+
+\begin{warnbox}
+\fontsize{9pt}{11pt}\selectfont
+\textcolor{textlight}{Always use \texttt{while}, never \texttt{if}!\\Spurious wakeups can and do occur.}
+\end{warnbox}
+
+\styledSubSection{Signal vs Broadcast}
+\begin{tcolorbox}[enhanced, colback=bgcard, colframe=bgcard, boxrule=0pt, arc=3pt, left=3pt, right=3pt, top=2pt, bottom=2pt]
+\tablestyle
+\begin{tabular}{@{}>{\ttfamily\color{primaryblue}}l@{\hspace{4pt}}>{\color{textmuted}}l@{}}
+signal & Wake \textbf{one} waiting thread \\
+broadcast & Wake \textbf{all} waiting threads \\
+\end{tabular}
+\end{tcolorbox}
+
+\textcolor{textmuted}{\footnotesize Use \texttt{broadcast} for: shutdown signals, state changes affecting multiple threads.}
+
+% ============================================================================
+% READ-WRITE LOCKS
+% ============================================================================
+\styledSection{\faBook}{Read-Write Locks}
+
+\textcolor{textmuted}{\footnotesize Multiple concurrent readers \textbf{OR} single exclusive writer.}
+
+\begin{lstlisting}
+pthread_rwlock_t rw = 
+    PTHREAD_RWLOCK_INITIALIZER;
+
+// Read lock (shared access)
+pthread_rwlock_rdlock(&rw);
+pthread_rwlock_tryrdlock(&rw);
+
+// Write lock (exclusive access)
+pthread_rwlock_wrlock(&rw);
+pthread_rwlock_trywrlock(&rw);
+
+// Unlock (same for both)
+pthread_rwlock_unlock(&rw);
+
+pthread_rwlock_destroy(&rw);
+\end{lstlisting}
+
+\begin{tipbox}
+\fontsize{9pt}{11pt}\selectfont
+\textcolor{textlight}{Best when reads >> writes. For balanced read/write, use a simple mutex instead.}
+\end{tipbox}
+
+% ============================================================================
+% BARRIERS
+% ============================================================================
+\styledSection{\faUsers}{Barriers}
+
+\textcolor{textmuted}{\footnotesize Synchronize exactly N threads at a rendezvous point.}
+
+\begin{lstlisting}
+pthread_barrier_t b;
+
+// Initialize for N threads
+pthread_barrier_init(&b, NULL, N);
+
+// Wait (blocks until N threads arrive)
+int rc = pthread_barrier_wait(&b);
+if (rc == PTHREAD_BARRIER_SERIAL_THREAD) {
+    // Exactly ONE thread gets this
+    // Use for cleanup, etc.
+}
+
+pthread_barrier_destroy(&b);
+\end{lstlisting}
+
+% ============================================================================
+% SPINLOCKS
+% ============================================================================
+\styledSection{\faSync}{Spinlocks}
+
+\textcolor{textmuted}{\footnotesize Busy-wait lock for \textit{extremely short} critical sections.}
+
+\begin{lstlisting}
+pthread_spinlock_t s;
+
+pthread_spin_init(&s, 
+    PTHREAD_PROCESS_PRIVATE);
+
+pthread_spin_lock(&s);    // Busy waits!
+pthread_spin_trylock(&s); // Non-blocking
+pthread_spin_unlock(&s);
+
+pthread_spin_destroy(&s);
+\end{lstlisting}
+
+\begin{warnbox}
+\fontsize{9pt}{11pt}\selectfont
+\textcolor{textlight}{Burns CPU cycles while waiting! Only use for lock hold times < context switch time.}
+\end{warnbox}
+
+% ============================================================================
+% THREAD-LOCAL STORAGE
+% ============================================================================
+\styledSection{\faKey}{Thread-Local Storage}
+
+\styledSubSection{pthread\_key API}
+\begin{lstlisting}
+pthread_key_t key;
+
+// Create key with destructor (once)
+pthread_key_create(&key, destructor_fn);
+
+// Set value for THIS thread only
+pthread_setspecific(key, value);
+
+// Get value for THIS thread
+void* val = pthread_getspecific(key);
+
+pthread_key_delete(key);
+\end{lstlisting}
+
+\styledSubSection{\_\_thread Keyword (GCC/Clang)}
+\begin{lstlisting}
+__thread int counter = 0;
+__thread void* my_data = NULL;
+
+// Each thread has its own copy!
+// Simpler than pthread_key API
+\end{lstlisting}
+
+% ============================================================================
+% ONCE INITIALIZATION
+% ============================================================================
+\styledSection{\faCheckDouble}{Once Initialization}
+
+\textcolor{textmuted}{\footnotesize Execute initialization code exactly once, thread-safely.}
+
+\begin{lstlisting}
+pthread_once_t once = PTHREAD_ONCE_INIT;
+
+void init_function(void) {
+    // This runs exactly ONCE
+    // regardless of how many threads call
+}
+
+// Called from any/all threads:
+pthread_once(&once, init_function);
+\end{lstlisting}
+
+% ============================================================================
+% CANCELLATION
+% ============================================================================
+\styledSection{\faBan}{Thread Cancellation}
+
+\begin{lstlisting}
+// Request thread cancellation
+pthread_cancel(thread);
+
+// Enable/disable cancellation
+pthread_setcancelstate(
+    PTHREAD_CANCEL_ENABLE, NULL);
+    // or PTHREAD_CANCEL_DISABLE
+
+// Set cancellation type
+pthread_setcanceltype(
+    PTHREAD_CANCEL_DEFERRED, NULL);
+    // or PTHREAD_CANCEL_ASYNCHRONOUS
+
+// Create explicit cancellation point
+pthread_testcancel();
+\end{lstlisting}
+
+\styledSubSection{Cleanup Handlers}
+\begin{lstlisting}
+pthread_cleanup_push(cleanup_fn, arg);
+// ... cancellable code ...
+pthread_cleanup_pop(1);  // 1 = execute handler
+\end{lstlisting}
+
+% ============================================================================
+% SEMAPHORES
+% ============================================================================
+\styledSection{\faTrafficLight}{Semaphores}
+
+\textcolor{accentorange}{\texttt{\#include <semaphore.h>}}
+
+\begin{lstlisting}
+sem_t sem;
+
+// Initialize with count
+sem_init(&sem, 0, initial_value);
+
+// Wait (decrement, blocks if 0)
+sem_wait(&sem);
+sem_trywait(&sem);
+sem_timedwait(&sem, &ts);
+
+// Post (increment, wake waiters)
+sem_post(&sem);
+
+// Get current value
+sem_getvalue(&sem, &val);
+
+sem_destroy(&sem);
+\end{lstlisting}
+
+\begin{tipbox}
+\fontsize{9pt}{11pt}\selectfont
+\textcolor{textlight}{\textbf{Mutex} = binary semaphore (0 or 1)}\\
+\textcolor{textlight}{\textbf{Semaphore} = counting (0 to N)}
+\end{tipbox}
+
+% ============================================================================
+% ERROR CODES
+% ============================================================================
+\styledSection{\faExclamationCircle}{Error Codes}
+
+\begin{tcolorbox}[enhanced, colback=bgcard, colframe=bgcard, boxrule=0pt, arc=3pt, left=3pt, right=3pt, top=2pt, bottom=2pt]
+\tablestyle
+\begin{tabular}{@{}>{\ttfamily\color{codered}}l@{\hspace{4pt}}>{\color{textmuted}}l@{}}
+EAGAIN & Insufficient resources \\
+EBUSY & Resource is busy \\
+EDEADLK & Deadlock detected \\
+EINVAL & Invalid argument \\
+ENOMEM & Out of memory \\
+EPERM & Operation not permitted \\
+ESRCH & No such thread \\
+ETIMEDOUT & Operation timed out \\
+\end{tabular}
+\end{tcolorbox}
+
+\begin{lstlisting}
+int rc = pthread_create(&t, NULL, fn, arg);
+if (rc != 0) {
+    fprintf(stderr, "Error: %s\n", 
+            strerror(rc));
+    exit(EXIT_FAILURE);
+}
+\end{lstlisting}
+
+% ============================================================================
+% SCHEDULING
+% ============================================================================
+\styledSection{\faClock}{Scheduling}
+
+\begin{lstlisting}
+// Get/Set scheduling parameters
+pthread_getschedparam(t, &policy, &param);
+pthread_setschedparam(t, policy, &param);
+
+// Set thread priority
+pthread_setschedprio(t, priority);
+
+// Yield CPU to other threads
+sched_yield();
+
+// Get priority range for policy
+int min = sched_get_priority_min(policy);
+int max = sched_get_priority_max(policy);
+\end{lstlisting}
+
+\styledSubSection{Scheduling Policies}
+\begin{tcolorbox}[enhanced, colback=bgcard, colframe=bgcard, boxrule=0pt, arc=3pt, left=3pt, right=3pt, top=2pt, bottom=2pt]
+\tablestyle
+\begin{tabular}{@{}>{\ttfamily\color{accentpurple}}l@{\hspace{3pt}}>{\color{textmuted}}l@{}}
+SCHED\_OTHER & Default time-sharing \\
+SCHED\_FIFO & Real-time FIFO \\
+SCHED\_RR & Real-time round-robin \\
+\end{tabular}
+\end{tcolorbox}
+
+% ============================================================================
+% COMMON PATTERNS
+% ============================================================================
+\styledSection{\faLightbulb}{Common Patterns}
+
+\styledSubSection{Producer-Consumer Queue}
+\begin{lstlisting}
+// === PRODUCER ===
+pthread_mutex_lock(&mutex);
+while (queue_full)
+    pthread_cond_wait(&not_full, &mutex);
+enqueue(item);
+pthread_cond_signal(&not_empty);
+pthread_mutex_unlock(&mutex);
+
+// === CONSUMER ===
+pthread_mutex_lock(&mutex);
+while (queue_empty)
+    pthread_cond_wait(&not_empty, &mutex);
+item = dequeue();
+pthread_cond_signal(&not_full);
+pthread_mutex_unlock(&mutex);
+\end{lstlisting}
+
+\styledSubSection{Thread Pool Worker}
+\begin{lstlisting}
+void* worker(void* pool_ptr) {
+    while (1) {
+        pthread_mutex_lock(&mutex);
+        while (queue_empty && !shutdown)
+            pthread_cond_wait(&job_ready, &mutex);
+        if (shutdown && queue_empty) {
+            pthread_mutex_unlock(&mutex);
+            break;
+        }
+        job = dequeue_job();
+        pthread_mutex_unlock(&mutex);
+        execute_job(job);
+    }
+    return NULL;
+}
+\end{lstlisting}
+
+\styledSubSection{Graceful Shutdown}
+\begin{lstlisting}
+// Signal all workers to stop
+pthread_mutex_lock(&mutex);
+shutdown = true;
+pthread_cond_broadcast(&cond);  // Wake ALL
+pthread_mutex_unlock(&mutex);
+
+// Wait for all threads to finish
+for (int i = 0; i < num_threads; i++)
+    pthread_join(threads[i], NULL);
+
+// Clean up resources
+pthread_mutex_destroy(&mutex);
+pthread_cond_destroy(&cond);
+\end{lstlisting}
+
+% ============================================================================
+% GOLDEN RULES
+% ============================================================================
+\styledSection{\faStar}{Golden Rules}
+
+\begin{infobox}
+\fontsize{9pt}{11pt}\selectfont
+\begin{enumerate}[leftmargin=12pt, itemsep=1pt]
+\item \textcolor{successgreen}{\textbf{Always}} use \texttt{while} with \texttt{cond\_wait}
+\item \textcolor{successgreen}{\textbf{Lock}} before checking/modifying shared state
+\item \textcolor{successgreen}{\textbf{Unlock}} what you lock (same thread!)
+\item \textcolor{successgreen}{\textbf{Join}} or \textbf{detach} every thread created
+\item \textcolor{successgreen}{\textbf{Destroy}} every resource you initialize
+\item \textcolor{dangerred}{\textbf{Don't}} pass stack variables without sync
+\item \textcolor{successgreen}{\textbf{Lock in consistent order}} to avoid deadlock
+\item \textcolor{successgreen}{\textbf{Minimize}} critical section duration
+\end{enumerate}
+\end{infobox}
+
+% ============================================================================
+% COMPILATION
+% ============================================================================
+\styledSection{\faTerminal}{Compilation}
+
+\begin{lstlisting}[language=bash]
+# Basic compilation (Linux/macOS)
+gcc -pthread program.c -o program
+
+# With debugging and thread sanitizer
+gcc -pthread -g -fsanitize=thread \
+    program.c -o program
+
+# With additional libraries
+gcc -pthread program.c -o program -lm -lrt
+\end{lstlisting}
+
+% ============================================================================
+% QUICK REFERENCE TABLE
+% ============================================================================
+\styledSection{\faTable}{Quick Reference}
+
+\begin{tcolorbox}[enhanced, colback=bgcard, colframe=primaryblue!50, boxrule=0.5pt, arc=3pt, left=3pt, right=3pt, top=2pt, bottom=2pt]
+\fontsize{9pt}{11pt}\selectfont
+\renewcommand{\arraystretch}{1.3}
+\tablestyle
+\begin{tabular}{@{}>{\color{textlight}}l@{\hspace{3pt}}>{\ttfamily\color{primaryblue}}l@{}}
+\rowcolor{primaryblue!20!bgdark} \multicolumn{2}{@{}l}{\textbf{\color{white}Thread Operations}} \\
+Create thread & pthread\_create \\
+Wait for thread & pthread\_join \\
+Exit thread & pthread\_exit \\
+\rowcolor{primaryblue!20!bgdark} \multicolumn{2}{@{}l}{\textbf{\color{white}Mutex Operations}} \\
+Lock (blocking) & pthread\_mutex\_lock \\
+Lock (try) & pthread\_mutex\_trylock \\
+Unlock & pthread\_mutex\_unlock \\
+\rowcolor{primaryblue!20!bgdark} \multicolumn{2}{@{}l}{\textbf{\color{white}Condition Variables}} \\
+Wait for signal & pthread\_cond\_wait \\
+Signal one & pthread\_cond\_signal \\
+Signal all & pthread\_cond\_broadcast \\
+\rowcolor{primaryblue!20!bgdark} \multicolumn{2}{@{}l}{\textbf{\color{white}RW Locks \& Barriers}} \\
+Read lock & pthread\_rwlock\_rdlock \\
+Write lock & pthread\_rwlock\_wrlock \\
+Barrier wait & pthread\_barrier\_wait \\
+\end{tabular}
+\end{tcolorbox}
+
+\vfill
+
+% Footer
+\begin{center}
+\begin{tikzpicture}
+\draw[primaryblue!50, line width=0.5pt] (0,0) -- (\linewidth,0);
+\end{tikzpicture}
+\vspace{1pt}
+
+{\fontsize{8pt}{9pt}\selectfont\color{textmuted}
+\texttt{\color{accentorange}\#include <pthread.h>} \quad\textbar\quad 
+Link: \texttt{\color{primaryblue}-pthread} \quad\textbar\quad 
+POSIX 1003.1c-1995
+}
+\end{center}
+
+\end{multicols}
+
+\end{document}
