@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdbool.h>
-#include "Queue.h"
+#include "../utils/Queue.h"
 
 #define THREADS_NUM 20
 
