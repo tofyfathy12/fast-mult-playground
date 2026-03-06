@@ -1,6 +1,6 @@
 # 🚀 Fast Multiplication Playground
 
-Welcome to the **Fast Multiplication Playground**! This repository is a dedicated space for exploring, implementing, and optimizing high-performance multiplication algorithms in C. It includes classical divide-and-conquer approaches as well as advanced transform-based methods, complete with multithreading support for large-scale computations.
+Welcome to the **Fast Multiplication Playground**! This repository is a dedicated space for exploring, implementing, and optimizing high-performance multiplication algorithms in C. It includes classical divide-and-conquer approaches as well as advanced transform-based methods, complete with multithreading support for large-scale computations (multithreading appraoch is not fully implemented yet).
 
 ## 🎯 Algorithms Included
 
