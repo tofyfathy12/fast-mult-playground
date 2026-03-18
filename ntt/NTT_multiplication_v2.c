@@ -9,6 +9,16 @@
 #define PRIM_ROOT_G 13
 #define N 2147483648
 
+int DEBUG = 0;
+
+#define DBG_HEADER(msg) do { if (DEBUG) printf("\n\033[1;36m══════ %s ══════\033[0m\n", msg); } while(0)
+#define DBG_VAL(label, fmt, ...) do { if (DEBUG) printf("  \033[33m%-22s\033[0m " fmt "\n", label, __VA_ARGS__); } while(0)
+#define DBG_SEP() do { if (DEBUG) printf("\033[90m  ────────────────────────────────\033[0m\n"); } while(0)
+#define DBG_ARRAY(fn, name, arr, len) do { if (DEBUG) { printf("  \033[33m%-22s\033[0m ", name); fn(name, arr, len); } } while(0)
+clock_t _dbg_t;
+#define DBG_TIME_START() _dbg_t = clock()
+#define DBG_TIME_END(label) do { if (DEBUG) { double _s = (double)(clock() - _dbg_t) / CLOCKS_PER_SEC; printf("  \033[32m%-22s\033[0m %.6f s\n", label, _s); } } while(0)
+
 typedef struct arr {
 	int* list;
 	int length;
@@ -56,28 +66,36 @@ void print_int_array(char* name, int* array, int len);
 void print_longlong_array(char* name, unsigned long long* array, int len);
 
 int main(int argc, char *argv[]) {
-    charArray* num1 = getStr("1234554321");
-    charArray* num2 = getStr("5432112345");
-    charArray* product = mult_NTT_fast(num1, num2);
-    printf("%s * %s = %s\n", num1->list, num2->list, product->list);
-
-    int power = 53;
-    charArray* pow_result = mypow_NTT_fast(num1, power);
-    printf("%s ^ %d = %s\n", num1->list, power, pow_result->list);
-
-    int n = 100000;
-	clock_t start = clock();
-    charArray* n_fact = factorial(n);
-	clock_t end = clock();
-	double secs = (double)(end - start) / CLOCKS_PER_SEC;
-    printf("%d! = %s\n", n, n_fact->list);
-	printf("It took time = %.3lf seconds to calculate %d!\n", secs, n);
-
-    freecharArray(num1);
-    freecharArray(num2);
-    freecharArray(product);
-    freecharArray(pow_result);
-    freecharArray(n_fact);
+	const char *s1 = NULL, *s2 = NULL, *pow_base = NULL;
+	int fact_n = 0, pow_exp = 0;
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-d") == 0) { DEBUG = 1; continue; }
+		if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) { fact_n = atoi(argv[++i]); continue; }
+		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); continue; }
+		if (!s1) s1 = argv[i]; else s2 = argv[i];
+	}
+	if (fact_n > 0) {
+		clock_t start = clock();
+		charArray* n_fact = factorial(fact_n);
+		clock_t end = clock();
+		double secs = (double)(end - start) / CLOCKS_PER_SEC;
+		printf("%d! = %s\n", fact_n, n_fact->list);
+		printf("It took time = %.3lf seconds to calculate %d!\n", secs, fact_n);
+		freecharArray(n_fact);
+	} else if (pow_base) {
+		charArray* num = getStr(pow_base);
+		charArray* pow_result = mypow_NTT_fast(num, pow_exp);
+		printf("%s ^ %d = %s\n", num->list, pow_exp, pow_result->list);
+		freecharArray(num); freecharArray(pow_result);
+	} else {
+		if (!s1) { s1 = "1234554321"; s2 = "5432112345"; }
+		if (!s2) { printf("Usage: %s <num1> <num2> [-d] | -f <N> | -p <base> <exp> [-d]\n", argv[0]); return 1; }
+		charArray* num1 = getStr(s1);
+		charArray* num2 = getStr(s2);
+		charArray* product = mult_NTT_fast(num1, num2);
+		printf("%s * %s = %s\n", num1->list, num2->list, product->list);
+		freecharArray(num1); freecharArray(num2); freecharArray(product);
+	}
 }
 
 charArray* create_long_num(int len, char digit) {
@@ -210,7 +228,7 @@ void eval_NTT(unsigned long long* Xs, unsigned long long* coffs, int n, unsigned
 		}
 	}
 
-//	print_longlong_array("coffs_scrambled", coffs, n); //debugging
+	if (DEBUG) print_longlong_array("coffs_scrambled", coffs, n);
 
 	for (int size = 2; size <= n; size *= 2) {
 		for (int i = 0; i < n; i+= size) {
@@ -252,7 +270,7 @@ void eval_INTT(unsigned long long* Xs_inv, unsigned long long* NTT_result, int n
 		}
 	}
 
-//	print_longlong_array("NTT_result_scrambled", NTT_result, n); //debugging
+	if (DEBUG) print_longlong_array("NTT_result_scrambled", NTT_result, n);
 
 	for (int size = 2; size <= n; size *= 2) {
 		for (int i = 0; i < n; i+= size) {
@@ -280,7 +298,7 @@ void eval_INTT(unsigned long long* Xs_inv, unsigned long long* NTT_result, int n
 
 void get_final_result_NTT_fast(charArray* result_buffer, unsigned long long* INTT_result, int n, int len1, int len2) {
 	int len = len1 + len2;
-//	printf("len = %d, n = %d\n", len, n); //debugging
+	if (DEBUG) printf("len = %d, n = %d\n", len, n);
 	result_buffer->list[len] = '\0';
 	unsigned long long carry = 0;
 	for (int i = 0; i < n && i < (len - 1); i++) {
@@ -322,60 +340,76 @@ void mult_fast(charArray* result_buffer, unsigned long long* coffs_buffer, int c
 	int n = pre_n;
 	unsigned long long p = PRIME;
 	unsigned long long g = modpow(PRIM_ROOT_G, (p-1)/n, p);
-//	printf("g = %lld\n", g); //debugging
-
-//	printf("next power of two (n) = %d\n", n); //debugging
+	
+	DBG_HEADER("NTT MULTIPLICATION (Fast)");
+	DBG_VAL("num1 length", "%d digits", len1);
+	DBG_VAL("num2 length", "%d digits", len2);
+	DBG_VAL("padded size (n)", "%d", n);
+	DBG_VAL("prime (p)", "%llu", p);
+	DBG_VAL("primitive root (g)", "%llu", g);
+	DBG_SEP();
 
 	unsigned long long* coffs1 = coffs_buffer;
 	unsigned long long* coffs2 = coffs1 + (coffs_buffer_len / 3);
 	unsigned long long* Xs = coffs2 + (coffs_buffer_len / 3);
 
+	DBG_TIME_START();
 	get_coffs_NTT_fast(coffs1, num1, n);
 	get_coffs_NTT_fast(coffs2, num2, n);
+	DBG_TIME_END("coefficients");
 
-//	print_longlong_array("coffs1", coffs1, n); //debugging
-//	print_longlong_array("coffs2", coffs2, n); //debugging
+	DBG_ARRAY(print_longlong_array, "coffs1", coffs1, n);
+	DBG_ARRAY(print_longlong_array, "coffs2", coffs2, n);
 
 	nthRoots_NTT_fast(Xs, n, g, p);
+	DBG_ARRAY(print_longlong_array, "Xs", Xs, n);
 
-//	print_longlong_array("Xs", Xs, n); //debugging
-
+	DBG_TIME_START();
 	eval_NTT(Xs, coffs1, n, p);
 	eval_NTT(Xs, coffs2, n, p);
+	DBG_TIME_END("forward NTT");
 	unsigned long long* eval1 = coffs1;
 	unsigned long long* eval2 = coffs2;
 
-//	print_longlong_array("eval1", eval1, n); //debugging
-//	print_longlong_array("eval2", eval2, n); //debugging
+	DBG_ARRAY(print_longlong_array, "eval1", eval1, n);
+	DBG_ARRAY(print_longlong_array, "eval2", eval2, n);
 
+	DBG_TIME_START();
 	pointwise_mult_NTT(eval1, eval1, eval2, n, p);
+	DBG_TIME_END("pointwise multiply");
 	unsigned long long* mult_result = eval1;
 
-//	print_longlong_array("mult_result", mult_result, n); //debugging
+	DBG_ARRAY(print_longlong_array, "mult_result", mult_result, n);
 
 	unsigned long long g_inv = modinv_fermat(g, p);
-
-//	printf("g_inv = %lld\n", g_inv); //debugging
+	DBG_VAL("g_inv", "%llu", g_inv);
 
 	nthRoots_NTT_inv(Xs, n, g_inv, p);
 	unsigned long long* Xs_inv = Xs;
 
-//	print_longlong_array("Xs_inv", Xs_inv, n); //debugging
+	DBG_ARRAY(print_longlong_array, "Xs_inv", Xs_inv, n);
 
+	DBG_TIME_START();
 	eval_INTT(Xs_inv, mult_result, n, p);
+	DBG_TIME_END("inverse NTT");
 	unsigned long long* INTT_eval = mult_result;
 
-//	print_longlong_array("unscaled_INTT_eval", INTT_eval, n); //debugging
+	DBG_ARRAY(print_longlong_array, "unscaled_INTT_eval", INTT_eval, n);
 
 	unsigned long long n_inv = modinv_fermat(n, p);
+	DBG_VAL("n_inv", "%llu", n_inv);
 	for (int i = 0; i< n; i++) {
 		__uint128_t product = (__uint128_t) INTT_eval[i] * n_inv;
 		INTT_eval[i] = product % p;
 	}
 
-//	print_longlong_array("scaled_INTT_eval", INTT_eval, n); //debugging
+	DBG_ARRAY(print_longlong_array, "scaled_INTT_eval", INTT_eval, n);
 
+	DBG_TIME_START();
 	get_final_result_NTT_fast(result_buffer, INTT_eval, n, len1, len2);
+	DBG_TIME_END("carry & finalize");
+	
+	DBG_SEP();
 }
 
 charArray* mypow_NTT_fast(charArray* num, int power) {
@@ -401,17 +435,17 @@ void power_fast(charArray* result_buffer, charArray* scratch_space, unsigned lon
 	charArray* working_num = scratch_space;
 	sprintf(working_num->list, "%s", num->list);
 	working_num->length = num->length;
-//	printf("working_num->list = %s, working_num->length = %d\n", working_num->list, working_num->length); //debugging
+	if (DEBUG) printf("working_num->list = %s, working_num->length = %d\n", working_num->list, working_num->length);
 	while (power > 0) {
 		if (power % 2 == 0) {
 			int pre_n = next2pow(2 * working_num->length - 1);
-//			printf("pre_n = %d\n", pre_n); //debugging
+			if (DEBUG) printf("pre_n = %d\n", pre_n);
 			mult_fast(working_num, coffs_scratch_space, coffs_scratch_len, working_num, working_num, pre_n);
 			power /= 2;
 		}
 		else {
 			int pre_n = next2pow(working_num->length + result_buffer->length - 1);
-//			printf("pre_n = %d\n", pre_n); //debugging
+			if (DEBUG) printf("pre_n = %d\n", pre_n);
 			mult_fast(result_buffer, coffs_scratch_space, coffs_scratch_len, result_buffer, working_num, pre_n);
 			power -= 1;
 		}
@@ -512,7 +546,7 @@ strArray* get_powered_primes_fast(intArray* primes, intArray* primesExps, int* p
 		sprintf(prime->list, "%d", primes->list[i]);
 		prime->length = prime_size;
 
-//		printf("raising %s to power %d\n", prime->list, primesExps->list[i]); //debugging
+		if (DEBUG) printf("raising %s to power %d\n", prime->list, primesExps->list[i]);
 		power_fast(powered_prime, scratch_buffer, coffs_scratch_space, coffs_scratch_len, prime, primesExps->list[i]);
 		poweredPrimes->list[i] = powered_prime;
 		prefix_digits_sum[i + 1] = prefix_digits_sum[i] + poweredPrimes->list[i]->length;
@@ -586,11 +620,11 @@ size_t compute_result_space_factorial(int start, int end, int* prefix_digits_sum
 charArray* factorial(int n) {
 	intArray* primes = sieve_primes(n);
 
-	// print_int_array("primes", primes->list, primes->length); //debugging
+	if (DEBUG) print_int_array("primes", primes->list, primes->length);
 
 	intArray* primes_exps = get_primes_exps(primes, n);
 
-	// print_int_array("primes' powers", primes_exps->list, primes_exps->length); //debugging
+	if (DEBUG) print_int_array("primes' powers", primes_exps->list, primes_exps->length);
 
 	int prefix_digits_sum[primes->length + 1];
 	prefix_digits_sum[0] = 0;

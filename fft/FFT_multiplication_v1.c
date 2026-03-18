@@ -7,6 +7,16 @@
 #include <complex.h>
 #include <time.h>
 
+int DEBUG = 0;
+
+#define DBG_HEADER(msg) do { if (DEBUG) printf("\n\033[1;36m══════ %s ══════\033[0m\n", msg); } while(0)
+#define DBG_VAL(label, fmt, ...) do { if (DEBUG) printf("  \033[33m%-22s\033[0m " fmt "\n", label, __VA_ARGS__); } while(0)
+#define DBG_SEP() do { if (DEBUG) printf("\033[90m  ────────────────────────────────\033[0m\n"); } while(0)
+#define DBG_ARRAY(fn, name, arr, len) do { if (DEBUG) { printf("  \033[33m%-22s\033[0m ", name); fn(name, arr, len); } } while(0)
+clock_t _dbg_t;
+#define DBG_TIME_START() _dbg_t = clock()
+#define DBG_TIME_END(label) do { if (DEBUG) { double _s = (double)(clock() - _dbg_t) / CLOCKS_PER_SEC; printf("  \033[32m%-22s\033[0m %.6f s\n", label, _s); } } while(0)
+
 typedef struct arr3 {
 	char* list;
 	int length;
@@ -28,24 +38,27 @@ void print_cmplx_array(char* name, double complex* array, int len);
 void print_int_array(char* name, int* array, int len);
 
 int main(int argc, char *argv[]) {
-    charArray* num1 = getStr("88888");
-    charArray* num2 = getStr("99999");
-
-    charArray* result = mult_FFT(num1, num2);
-
-    printf("%s * %s = %s\n", num1->list, num2->list, result->list);
-
-	charArray* num = getStr("2");
-	int power = 30;
-	charArray* pow_result = mypow(num, power);
-
-	printf("%s ^ %d = %s\n", num->list, power, pow_result->list);
-
-    freecharArray(num1);
-    freecharArray(num2);
-    freecharArray(result);
-	freecharArray(num);
-	freecharArray(pow_result);
+	const char *s1 = NULL, *s2 = NULL, *pow_base = NULL;
+	int pow_exp = 0;
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-d") == 0) { DEBUG = 1; continue; }
+		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); continue; }
+		if (!s1) s1 = argv[i]; else s2 = argv[i];
+	}
+	if (pow_base) {
+		charArray* num = getStr(pow_base);
+		charArray* pow_result = mypow(num, pow_exp);
+		printf("%s ^ %d = %s\n", num->list, pow_exp, pow_result->list);
+		freecharArray(num); freecharArray(pow_result);
+	} else {
+		if (!s1) { s1 = "88888"; s2 = "99999"; }
+		if (!s2) { printf("Usage: %s <num1> <num2> [-d] | -p <base> <exp> [-d]\n", argv[0]); return 1; }
+		charArray* num1 = getStr(s1);
+		charArray* num2 = getStr(s2);
+		charArray* result = mult_FFT(num1, num2);
+		printf("%s * %s = %s\n", num1->list, num2->list, result->list);
+		freecharArray(num1); freecharArray(num2); freecharArray(result);
+	}
 }
 
 void freecharArray(charArray* arr) {
@@ -165,44 +178,61 @@ charArray* mult_FFT(charArray* num1, charArray* num2) {
 	int len2 = num2->length;
 	int deg = len1 + len2 - 1;
 	unsigned long long n = next2pow(deg);
-	// printf("n (next power of 2) = %lld\n", n); //debugging
+
+	DBG_HEADER("FFT MULTIPLICATION");
+	DBG_VAL("num1 length", "%d digits", len1);
+	DBG_VAL("num2 length", "%d digits", len2);
+	DBG_VAL("polynomial degree", "%d", deg);
+	DBG_VAL("padded size (n)", "%llu", n);
+	DBG_SEP();
+
+	DBG_TIME_START();
 	double complex* coffs1 = get_coffs(num1, n);
 	double complex* coffs2 = get_coffs(num2, n);
+	DBG_TIME_END("coefficients");
 
-	// print_cmplx_array("coffs1", coffs1, n); //debugging
-	// print_cmplx_array("coffs2", coffs2, n); //debugging
+	if (DEBUG) print_cmplx_array("coffs1", coffs1, n);
+	if (DEBUG) print_cmplx_array("coffs2", coffs2, n);
 
 	double complex* Xs = nthRoots(n);
 
-	// print_cmplx_array("nth roots", Xs, n); //debugging
+	if (DEBUG) print_cmplx_array("nth roots", Xs, n);
 
+	DBG_TIME_START();
 	double complex* eval1 = eval_FFT(Xs, n, coffs1, n, 0, 1);
 	double complex* eval2 = eval_FFT(Xs, n, coffs2, n, 0, 1);
+	DBG_TIME_END("forward FFT");
 
     free(coffs1); free(coffs2);
-	// print_cmplx_array("eval1", eval1, n); //debugging
-	// print_cmplx_array("eval2", eval2, n); //debugging
+	if (DEBUG) print_cmplx_array("eval1", eval1, n);
+	if (DEBUG) print_cmplx_array("eval2", eval2, n);
 
+	DBG_TIME_START();
 	pointwise_mult(eval1, eval1, eval2, n);
+	DBG_TIME_END("pointwise multiply");
 	free(eval2);
 	double complex* mult_result = eval1;
 	
-	// print_cmplx_array("mult_result", mult_result, n); //debugging
+	if (DEBUG) print_cmplx_array("mult_result", mult_result, n);
 
-	// eval_IFFT_iterative(Xs, mult_result, n);
+	DBG_TIME_START();
     double complex* IFFT_eval = eval_IFFT(Xs, n, mult_result, n, 0, 1);
     free(mult_result); free(Xs);
+	DBG_TIME_END("inverse FFT");
 
-	// print_cmplx_array("unscaled_IFFT_eval", IFFT_eval, n); //debugging
+	if (DEBUG) print_cmplx_array("unscaled_IFFT_eval", IFFT_eval, n);
 	
 	for (int i = 0; i < n; i++) {
 		IFFT_eval[i] /= n;
 	}
 
-//	print_cmplx_array("scaled_IFFT_eval", IFFT_eval, n); //debugging
+	if (DEBUG) print_cmplx_array("scaled_IFFT_eval", IFFT_eval, n);
 
 	charArray* final_result = get_final_result(IFFT_eval, n, len1, len2);
 	free(IFFT_eval);
+
+	DBG_SEP();
+	DBG_VAL("result length", "%d digits", final_result->length);
 
 	return final_result;
 }

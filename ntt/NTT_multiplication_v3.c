@@ -9,6 +9,16 @@
 #define PRIM_ROOT_G 7
 #define N 8388608
 
+int DEBUG = 0;
+
+#define DBG_HEADER(msg) do { if (DEBUG) printf("\n\033[1;36m══════ %s ══════\033[0m\n", msg); } while(0)
+#define DBG_VAL(label, fmt, ...) do { if (DEBUG) printf("  \033[33m%-22s\033[0m " fmt "\n", label, __VA_ARGS__); } while(0)
+#define DBG_SEP() do { if (DEBUG) printf("\033[90m  ────────────────────────────────\033[0m\n"); } while(0)
+#define DBG_ARRAY(fn, name, arr, len) do { if (DEBUG) { printf("  \033[33m%-22s\033[0m ", name); fn(name, arr, len); } } while(0)
+clock_t _dbg_t;
+#define DBG_TIME_START() _dbg_t = clock()
+#define DBG_TIME_END(label) do { if (DEBUG) { double _s = (double)(clock() - _dbg_t) / CLOCKS_PER_SEC; printf("  \033[32m%-22s\033[0m %.6f s\n", label, _s); } } while(0)
+
 typedef struct arr {
 	int* list;
 	int length;
@@ -55,29 +65,36 @@ void print_longlong_array(char* name, unsigned long long* array, int len);
 
 int main(int argc, char *argv[]) {
     int chunk_length = 5;
-
-    charArray* num1 = getStr("32423084730840000");
-    charArray* num2 = getStr("98794984989159419919495213");
-    charArray* product = mult_NTT_base(num1, num2, chunk_length);
-    printf("%s * %s = %s\n", num1->list, num2->list, product->list);
-
-    int power = 487;
-    charArray* pow_result = mypow_NTT_base(num2, power, chunk_length);
-    printf("%s ^ %d = %s\n", num2->list, power, pow_result->list);
-
-    int n = 100000;
-	clock_t start = clock();
-    charArray* n_fact = factorial_base(n, chunk_length);
-	clock_t end = clock();
-	double secs = (double) (end - start) / CLOCKS_PER_SEC;
-    printf("%d! = %s\n", n, n_fact->list);
-	printf("It took time = %.3lf seconds to calculate %d!\n", secs, n);
-
-    freecharArray(num1);
-    freecharArray(num2);
-    freecharArray(product);
-    freecharArray(pow_result);
-    freecharArray(n_fact);
+	const char *s1 = NULL, *s2 = NULL, *pow_base = NULL;
+	int fact_n = 0, pow_exp = 0;
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-d") == 0) { DEBUG = 1; continue; }
+		if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) { fact_n = atoi(argv[++i]); continue; }
+		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); continue; }
+		if (!s1) s1 = argv[i]; else s2 = argv[i];
+	}
+	if (fact_n > 0) {
+		clock_t start = clock();
+		charArray* n_fact = factorial_base(fact_n, chunk_length);
+		clock_t end = clock();
+		double secs = (double)(end - start) / CLOCKS_PER_SEC;
+		printf("%d! = %s\n", fact_n, n_fact->list);
+		printf("It took time = %.3lf seconds to calculate %d!\n", secs, fact_n);
+		freecharArray(n_fact);
+	} else if (pow_base) {
+		charArray* num = getStr(pow_base);
+		charArray* pow_result = mypow_NTT_base(num, pow_exp, chunk_length);
+		printf("%s ^ %d = %s\n", num->list, pow_exp, pow_result->list);
+		freecharArray(num); freecharArray(pow_result);
+	} else {
+		if (!s1) { s1 = "32423084730840000"; s2 = "98794984989159419919495213"; }
+		if (!s2) { printf("Usage: %s <num1> <num2> [-d] | -f <N> | -p <base> <exp> [-d]\n", argv[0]); return 1; }
+		charArray* num1 = getStr(s1);
+		charArray* num2 = getStr(s2);
+		charArray* product = mult_NTT_base(num1, num2, chunk_length);
+		printf("%s * %s = %s\n", num1->list, num2->list, product->list);
+		freecharArray(num1); freecharArray(num2); freecharArray(product);
+	}
 }
 
 charArray* create_long_num(int len, char digit) {
@@ -224,7 +241,7 @@ void eval_NTT(unsigned long long* Xs, unsigned long long* coffs, int n, unsigned
 		}
 	}
 
-//	print_longlong_array("coffs_scrambled", coffs, n); //debugging
+	if (DEBUG) print_longlong_array("coffs_scrambled", coffs, n);
 
 	for (int size = 2; size <= n; size *= 2) {
 		for (int i = 0; i < n; i+= size) {
@@ -266,7 +283,7 @@ void eval_INTT(unsigned long long* Xs_inv, unsigned long long* NTT_result, int n
 		}
 	}
 
-//	print_longlong_array("NTT_result_scrambled", NTT_result, n); //debugging
+	if (DEBUG) print_longlong_array("NTT_result_scrambled", NTT_result, n);
 
 	for (int size = 2; size <= n; size *= 2) {
 		for (int i = 0; i < n; i+= size) {
@@ -342,77 +359,89 @@ charArray* mult_NTT_base(charArray* num1, charArray* num2, int chunk_length) {
 	double mantissa1 = get_mantissa(num1);
 	double mantissa2 = get_mantissa(num2);
 
-//	printf("mantissa1 = %lf, mantissa2 = %lf\n", mantissa1, mantissa2);
-
 	int estimated_result_length = (int)(log10(mantissa1) + (len1 - 1) + log10(mantissa2) + (len2 - 1)) + 1;
-
-//	printf("result estimated length = %d\n", estimated_result_length);
 
 	int chunks_len1 = (len1 % chunk_length == 0) ? len1 / chunk_length : len1 / chunk_length + 1;
 	int chunks_len2 = (len2 % chunk_length == 0) ? len2 / chunk_length : len2 / chunk_length + 1;
 
-//	printf("length of coffs1 = %d\n", chunks_len1);
-//	printf("length of coffs2 = %d\n", chunks_len2);
-
 	int deg = chunks_len1 + chunks_len2 - 1;
 	int n = next2pow(deg);
-//	printf("n = %d\n", n);
 	unsigned long long p = PRIME;
 	unsigned long long g = modpow(PRIM_ROOT_G, (p-1)/n, p);
-//	printf("p = %llu\ng = %llu\n", p, g);
 
+	DBG_HEADER("NTT MULTIPLICATION (Base Chunking)");
+	DBG_VAL("num1 length", "%d digits", len1);
+	DBG_VAL("num2 length", "%d digits", len2);
+	DBG_VAL("chunk length", "%d digits", chunk_length);
+	DBG_VAL("est result length", "%d digits", estimated_result_length);
+	DBG_VAL("chunks_len1", "%d", chunks_len1);
+	DBG_VAL("chunks_len2", "%d", chunks_len2);
+	DBG_VAL("padded size (n)", "%d", n);
+	DBG_VAL("prime (p)", "%llu", p);
+	DBG_VAL("primitive root (g)", "%llu", g);
+	DBG_SEP();
+
+	DBG_TIME_START();
 	unsigned long long* coffs1 = get_coffs_NTT_base(num1, n, chunk_length);
 	unsigned long long* coffs2 = get_coffs_NTT_base(num2, n, chunk_length);
+	DBG_TIME_END("coefficients");
 
-//	print_longlong_array("coffs1", coffs1, n);
-//	print_longlong_array("coffs2", coffs2, n);
+	DBG_ARRAY(print_longlong_array, "coffs1", coffs1, n);
+	DBG_ARRAY(print_longlong_array, "coffs2", coffs2, n);
 
 	unsigned long long* Xs = nthRoots_NTT(n, g, p);
+	DBG_ARRAY(print_longlong_array, "Xs", Xs, n);
 
-//	print_longlong_array("Xs", Xs, n);
-
+	DBG_TIME_START();
 	eval_NTT(Xs, coffs1, n, p);
 	eval_NTT(Xs, coffs2, n, p);
+	DBG_TIME_END("forward NTT");
 	unsigned long long* eval1 = coffs1;
 	unsigned long long* eval2 = coffs2;
 
-//	print_longlong_array("eval1", eval1, n); //debugging
-//	print_longlong_array("eval2", eval2, n); //debugging
+	DBG_ARRAY(print_longlong_array, "eval1", eval1, n);
+	DBG_ARRAY(print_longlong_array, "eval2", eval2, n);
 
+	DBG_TIME_START();
 	pointwise_mult_NTT(eval1, eval1, eval2, n, p);
+	DBG_TIME_END("pointwise multiply");
 	free(eval2);
 	unsigned long long* mult_result = eval1;
 
-//	print_longlong_array("mult_result", mult_result, n);
+	DBG_ARRAY(print_longlong_array, "mult_result", mult_result, n);
 
 	unsigned long long g_inv = modinv_fermat(g, p);
-
-//	printf("g_inv = %llu\n", g_inv);
+	DBG_VAL("g_inv", "%llu", g_inv);
 
 	nthRoots_NTT_inv(Xs, n, g_inv, p);
 	unsigned long long* Xs_inv = Xs;
+	DBG_ARRAY(print_longlong_array, "Xs_inv", Xs_inv, n);
 
-//	print_longlong_array("Xs_inv", Xs_inv, n);
-
+	DBG_TIME_START();
 	eval_INTT(Xs_inv, mult_result, n, p);
+	DBG_TIME_END("inverse NTT");
 	free(Xs_inv);
 	unsigned long long* INTT_eval = mult_result;
 
-//	print_longlong_array("unscaled_INTT_eval", INTT_eval, n);
+	DBG_ARRAY(print_longlong_array, "unscaled_INTT_eval", INTT_eval, n);
 
 	unsigned long long n_inv = modinv_fermat(n, p);
-
-//	printf("n_inv = %llu\n", n_inv);
+	DBG_VAL("n_inv", "%llu", n_inv);
 
 	for (int i = 0; i< n; i++) {
 		__uint128_t product = (__uint128_t) INTT_eval[i] * n_inv;
 		INTT_eval[i] = product % p;
 	}
 
-//	print_longlong_array("scaled_INTT_eval", INTT_eval, n);
+	DBG_ARRAY(print_longlong_array, "scaled_INTT_eval", INTT_eval, n);
 
+	DBG_TIME_START();
 	charArray* final_result = get_final_result_NTT_base(INTT_eval, n, estimated_result_length, chunk_length);
+	DBG_TIME_END("carry & finalize");
 	free(INTT_eval);
+
+	DBG_SEP();
+	DBG_VAL("result length", "%d digits", final_result->length);
 
 	return final_result;
 }
@@ -549,11 +578,11 @@ charArray* mulpowprimes_base(strArray* powered_primes, int start, int end, int c
 charArray* factorial_base(int n, int chunk_length) {
 	intArray* primes = sieve_primes(n);
 
-	// print_int_array("primes", primes->list, primes->length); //debugging
+	if (DEBUG) print_int_array("primes", primes->list, primes->length);
 
 	intArray* primes_exps = get_primes_exps(primes, n);
 
-	// print_int_array("primes' powers", primes_exps->list, primes_exps->length); //debugging
+	if (DEBUG) print_int_array("primes' powers", primes_exps->list, primes_exps->length);
 
 	strArray* powered_primes = get_powered_primes_base(primes, primes_exps, chunk_length);
 

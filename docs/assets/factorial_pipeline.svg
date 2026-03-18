@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 620">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&amp;display=swap');
+
+      .bg { fill: #0d1117; }
+      .card {
+        rx: 14;
+        ry: 14;
+        stroke-width: 1.5;
+        filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+      }
+      .card-input   { fill: #1a1f2e; stroke: #58a6ff; }
+      .card-process { fill: #1a1f2e; stroke: #d2a8ff; }
+      .card-output  { fill: #1a1f2e; stroke: #3fb950; }
+
+      .title {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        fill: #e6edf3;
+        text-anchor: middle;
+      }
+      .subtitle {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-size: 10px;
+        font-weight: 500;
+        fill: #8b949e;
+        text-anchor: middle;
+      }
+      .emoji {
+        font-size: 22px;
+        text-anchor: middle;
+      }
+      .arrow-line {
+        stroke: #30363d;
+        stroke-width: 2;
+        fill: none;
+      }
+      .arrow-head {
+        fill: #30363d;
+      }
+      .step-num {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        fill: #0d1117;
+        text-anchor: middle;
+      }
+      .step-circle-blue   { fill: #58a6ff; }
+      .step-circle-purple { fill: #d2a8ff; }
+      .step-circle-green  { fill: #3fb950; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" width="220" height="620" rx="12"/>
+
+  <!-- Step 1: Input -->
+  <circle class="step-circle-blue" cx="30" cy="58" r="11"/>
+  <text class="step-num" x="30" y="62">1</text>
+  <rect class="card card-input" x="50" y="30" width="150" height="56"/>
+  <text class="emoji" x="78" y="60">🔢</text>
+  <text class="title" x="135" y="56">Input n</text>
+  <text class="subtitle" x="135" y="72">compute n!</text>
+
+  <!-- Arrow -->
+  <line class="arrow-line" x1="125" y1="86" x2="125" y2="110"/>
+  <polygon class="arrow-head" points="120,110 130,110 125,118"/>
+
+  <!-- Step 2: Sieve -->
+  <circle class="step-circle-purple" cx="30" cy="148" r="11"/>
+  <text class="step-num" x="30" y="152">2</text>
+  <rect class="card card-process" x="50" y="120" width="150" height="56"/>
+  <text class="emoji" x="78" y="150">🔍</text>
+  <text class="title" x="135" y="146">Sieve Primes</text>
+  <text class="subtitle" x="135" y="162">Eratosthenes ≤ n</text>
+
+  <!-- Arrow -->
+  <line class="arrow-line" x1="125" y1="176" x2="125" y2="200"/>
+  <polygon class="arrow-head" points="120,200 130,200 125,208"/>
+
+  <!-- Step 3: Exponents -->
+  <circle class="step-circle-purple" cx="30" cy="238" r="11"/>
+  <text class="step-num" x="30" y="242">3</text>
+  <rect class="card card-process" x="50" y="210" width="150" height="56"/>
+  <text class="emoji" x="78" y="240">📐</text>
+  <text class="title" x="135" y="236">Exponents</text>
+  <text class="subtitle" x="135" y="252">Legendre's formula</text>
+
+  <!-- Arrow -->
+  <line class="arrow-line" x1="125" y1="266" x2="125" y2="290"/>
+  <polygon class="arrow-head" points="120,290 130,290 125,298"/>
+
+  <!-- Step 4: Power -->
+  <circle class="step-circle-purple" cx="30" cy="328" r="11"/>
+  <text class="step-num" x="30" y="332">4</text>
+  <rect class="card card-process" x="50" y="300" width="150" height="56"/>
+  <text class="emoji" x="78" y="330">⚡</text>
+  <text class="title" x="135" y="326">Prime Powers</text>
+  <text class="subtitle" x="135" y="342">binary exponentiation</text>
+
+  <!-- Arrow -->
+  <line class="arrow-line" x1="125" y1="356" x2="125" y2="380"/>
+  <polygon class="arrow-head" points="120,380 130,380 125,388"/>
+
+  <!-- Step 5: Multiply -->
+  <circle class="step-circle-purple" cx="30" cy="418" r="11"/>
+  <text class="step-num" x="30" y="422">5</text>
+  <rect class="card card-process" x="50" y="390" width="150" height="56"/>
+  <text class="emoji" x="78" y="420">🌳</text>
+  <text class="title" x="135" y="416">Tree Multiply</text>
+  <text class="subtitle" x="135" y="432">divide &amp; conquer</text>
+
+  <!-- Arrow -->
+  <line class="arrow-line" x1="125" y1="446" x2="125" y2="470"/>
+  <polygon class="arrow-head" points="120,470 130,470 125,478"/>
+
+  <!-- Step 6: Result -->
+  <circle class="step-circle-green" cx="30" cy="508" r="11"/>
+  <text class="step-num" x="30" y="512">6</text>
+  <rect class="card card-output" x="50" y="480" width="150" height="56"/>
+  <text class="emoji" x="78" y="510">✅</text>
+  <text class="title" x="135" y="506">n! Result</text>
+  <text class="subtitle" x="135" y="522">456,574 digits</text>
+
+  <!-- Footer -->
+  <text x="110" y="570" class="subtitle" style="font-size:9px;">100,000! computed in seconds</text>
+  <text x="110" y="585" class="subtitle" style="font-size:9px;">using NTT-based multiplication</text>
+</svg>

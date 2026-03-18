@@ -5,6 +5,15 @@
 #include <stdbool.h>
 #include <time.h>
 
+int DEBUG = 0;
+
+#define DBG_HEADER(msg) do { if (DEBUG) printf("\n\033[1;36m══════ %s ══════\033[0m\n", msg); } while(0)
+#define DBG_VAL(label, fmt, ...) do { if (DEBUG) printf("  \033[33m%-22s\033[0m " fmt "\n", label, __VA_ARGS__); } while(0)
+#define DBG_SEP() do { if (DEBUG) printf("\033[90m  ────────────────────────────────\033[0m\n"); } while(0)
+clock_t _dbg_t;
+#define DBG_TIME_START() _dbg_t = clock()
+#define DBG_TIME_END(label) do { if (DEBUG) { double _s = (double)(clock() - _dbg_t) / CLOCKS_PER_SEC; printf("  \033[32m%-22s\033[0m %.6f s\n", label, _s); } } while(0)
+
 typedef struct arr {
 	int* list;
 	int length;
@@ -39,54 +48,45 @@ void freecharArray(charArray* arr);
 void freestrArray(strArray* arr);
 void print_int_array(char* name, int* array, int len);
 
-int main(void) {
-    charArray *num1 = getStr("12345344444444444444444444444444444444444444444444444444446356565656546456789");
-	charArray *num2 = getStr("17644444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444315981");
-	int len1 = num1->length;
-	int len2 = num2->length;
-
-	charArray *added = advanced_add(num1, 0, len1, num2, 0, len2);
-	printf("%s + %s = %s\n", num1->list, num2->list, added->list);
-	char* substr1 = substring(num1->list, 1, 3);
-	char* substr2 = substring(num2->list, 0, 2);
-	char* substr3 = substring(num2->list, 2, 4);
-	char* substr4 = substring(num1->list, 2, 4);
-	charArray *subted1 = advanced_subtract(num1, 1, 3, num2, 0, 2); // 345 - 17 = 328
-	printf("%s - %s = %s\n", substr1, substr2, subted1->list);
-
-	charArray *subted2 = advanced_subtract(num2, 2, 4, num1, 2, 4); // 76 - 67 = 9
-	printf("%s - %s = %s\n", substr3, substr4, subted2->list);
-
-	if (len2 > len1) {
-		num1 = pad(num1, len2);
-		len1 = len2;
+int main(int argc, char *argv[]) {
+	const char *s1 = NULL, *s2 = NULL, *pow_base = NULL;
+	int pow_exp = 0;
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-d") == 0) { DEBUG = 1; continue; }
+		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); continue; }
+		if (!s1) s1 = argv[i]; else s2 = argv[i];
 	}
-	else if (len1 > len2) {
-		num2 = pad(num2, len1);
-		len2 = len1;
+	if (pow_base) {
+		charArray* num = getStr(pow_base);
+		charArray* pow_result = power(num, pow_exp);
+		printf("%s ^ %d = %s\n", num->list, pow_exp, pow_result->list);
+		freecharArray(num); freecharArray(pow_result);
+	} else {
+		if (!s1) { s1 = "12345"; s2 = "67890"; }
+		if (!s2) { printf("Usage: %s <num1> <num2> [-d] | -p <base> <exp> [-d]\n", argv[0]); return 1; }
+		charArray *num1 = getStr(s1);
+		charArray *num2 = getStr(s2);
+		int len1 = num1->length;
+		int len2 = num2->length;
+
+		DBG_HEADER("KARATSUBA MULTIPLICATION (Basic)");
+		DBG_VAL("num1 length", "%d digits", len1);
+		DBG_VAL("num2 length", "%d digits", len2);
+		DBG_SEP();
+
+		if (len2 > len1) { num1 = pad(num1, len2); len1 = len2; }
+		else if (len1 > len2) { num2 = pad(num2, len1); len2 = len1; }
+		
+		DBG_TIME_START();
+		charArray* product = karatsuba_mult(num1, 0, len1, num2, 0, len2);
+		DBG_TIME_END("karatsuba total");
+
+		DBG_SEP();
+		DBG_VAL("result length", "%d digits", product->length);
+
+		printf("%s * %s = %s\n", num1->list, num2->list, product->list);
+		freecharArray(num1); freecharArray(num2); freecharArray(product);
 	}
-	printf("num1 after padding : %s\n", num1->list);
-	printf("num2 after padding : %s\n", num2->list);
-
-	charArray* product = karatsuba_mult(num1, 0, len1, num2, 0, len2);
-	printf("%s * %s = %s\n", num1->list, num2->list, product->list);
-
-	charArray* num = getStr("22");
-	charArray* power_res = power(num, 5);
-	printf("%s ^ %d = %s\n", num->list, 5, power_res->list);
-
-    freecharArray(num1);
-    freecharArray(num2);
-    freecharArray(added);
-    free(substr1);
-    free(substr2);
-    free(substr3);
-    free(substr4);
-    freecharArray(subted1);
-    freecharArray(subted2);
-    freecharArray(product);
-    freecharArray(num);
-    freecharArray(power_res);
 }
 
 charArray* create_long_num(int len, char digit) {

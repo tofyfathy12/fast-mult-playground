@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 260">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&amp;display=swap');
+
+      .bg { fill: #0d1117; }
+
+      .header-row { fill: #161b22; }
+      .row-even   { fill: #0d1117; }
+      .row-odd    { fill: #161b22; }
+      .row-ntt    { fill: #1a2332; }
+
+      .border-line {
+        stroke: #21262d;
+        stroke-width: 1;
+      }
+
+      .header-text {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        fill: #58a6ff;
+      }
+      .cell-text {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 12px;
+        font-weight: 500;
+        fill: #e6edf3;
+      }
+      .cell-dim {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 12px;
+        font-weight: 500;
+        fill: #8b949e;
+      }
+      .cell-bold {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        fill: #e6edf3;
+      }
+      .cell-math {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        fill: #d2a8ff;
+      }
+      .badge {
+        rx: 6;
+        ry: 6;
+      }
+      .badge-exact  { fill: #238636; }
+      .badge-approx { fill: #9e6a03; }
+      .badge-text {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        fill: #ffffff;
+        text-anchor: middle;
+      }
+      .star-badge {
+        rx: 8;
+        ry: 8;
+        fill: #1f6feb;
+        stroke: #58a6ff;
+        stroke-width: 1;
+      }
+      .star-text {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        fill: #ffffff;
+        text-anchor: middle;
+      }
+      .outer-border {
+        fill: none;
+        stroke: #30363d;
+        stroke-width: 1.5;
+        rx: 10;
+        ry: 10;
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" width="780" height="260" rx="12"/>
+
+  <!-- Table outline -->
+  <rect class="outer-border" x="20" y="20" width="740" height="220"/>
+
+  <!-- Header row -->
+  <rect class="header-row" x="21" y="21" width="738" height="40" rx="9"/>
+  <text class="header-text" x="40" y="46">Algorithm</text>
+  <text class="header-text" x="220" y="46">Complexity</text>
+  <text class="header-text" x="370" y="46">Precision</text>
+  <text class="header-text" x="490" y="46">Key Characteristics</text>
+
+  <!-- Separator lines -->
+  <line class="border-line" x1="20" y1="61" x2="760" y2="61"/>
+  <line class="border-line" x1="200" y1="21" x2="200" y2="240"/>
+  <line class="border-line" x1="350" y1="21" x2="350" y2="240"/>
+  <line class="border-line" x1="470" y1="21" x2="470" y2="240"/>
+
+  <!-- Row 1: Schoolbook -->
+  <rect class="row-even" x="21" y="62" width="738" height="44"/>
+  <text class="cell-dim" x="40" y="88">Schoolbook</text>
+  <text class="cell-math" x="220" y="88">O(N²)</text>
+  <rect class="badge badge-exact" x="380" y="76" width="52" height="20"/>
+  <text class="badge-text" x="406" y="90">Exact</text>
+  <text class="cell-dim" x="490" y="88">Baseline — not included</text>
+
+  <line class="border-line" x1="20" y1="106" x2="760" y2="106"/>
+
+  <!-- Row 2: Karatsuba -->
+  <rect class="row-odd" x="21" y="107" width="738" height="44"/>
+  <text class="cell-bold" x="40" y="133">Karatsuba</text>
+  <text class="cell-math" x="220" y="133">O(N¹·⁵⁸⁵)</text>
+  <rect class="badge badge-exact" x="380" y="121" width="52" height="20"/>
+  <text class="badge-text" x="406" y="135">Exact</text>
+  <text class="cell-text" x="490" y="133">Divide-and-conquer, integer arithmetic</text>
+
+  <line class="border-line" x1="20" y1="151" x2="760" y2="151"/>
+
+  <!-- Row 3: FFT -->
+  <rect class="row-even" x="21" y="152" width="738" height="44"/>
+  <text class="cell-bold" x="40" y="178">FFT</text>
+  <text class="cell-math" x="220" y="178">O(N log N)</text>
+  <rect class="badge badge-approx" x="372" y="166" width="68" height="20"/>
+  <text class="badge-text" x="406" y="180">Approx ⚠</text>
+  <text class="cell-text" x="490" y="178">Complex roots of unity, float rounding</text>
+
+  <line class="border-line" x1="20" y1="196" x2="760" y2="196"/>
+
+  <!-- Row 4: NTT (highlighted) -->
+  <rect class="row-ntt" x="21" y="197" width="738" height="42" rx="0"/>
+  <text class="cell-bold" x="40" y="223">NTT</text>
+  <rect class="star-badge" x="70" y="211" width="30" height="18"/>
+  <text class="star-text" x="85" y="224">★</text>
+  <text class="cell-math" x="220" y="223">O(N log N)</text>
+  <rect class="badge badge-exact" x="380" y="211" width="52" height="20"/>
+  <text class="badge-text" x="406" y="225">Exact</text>
+  <text class="cell-text" x="490" y="223">Modular arithmetic mod prime p</text>
+</svg>

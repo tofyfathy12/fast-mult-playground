@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 200">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&amp;display=swap');
+
+      .bg { fill: #0d1117; }
+      .card {
+        rx: 14;
+        ry: 14;
+        stroke-width: 1.5;
+        filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+      }
+      .card-input   { fill: #1a1f2e; stroke: #58a6ff; }
+      .card-process { fill: #1a1f2e; stroke: #8b5cf6; }
+      .card-output  { fill: #1a1f2e; stroke: #3fb950; }
+
+      .title {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-size: 11.5px;
+        font-weight: 700;
+        fill: #e6edf3;
+        text-anchor: middle;
+      }
+      .subtitle {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-size: 9.5px;
+        font-weight: 500;
+        fill: #8b949e;
+        text-anchor: middle;
+      }
+      .emoji {
+        font-size: 18px;
+        text-anchor: middle;
+      }
+      .arrow {
+        fill: none;
+        stroke: #30363d;
+        stroke-width: 2;
+        marker-end: url(#arrowhead);
+      }
+      .section-label {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-size: 9px;
+        font-weight: 700;
+        text-anchor: middle;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+      }
+      .label-blue   { fill: #58a6ff; }
+      .label-purple { fill: #8b5cf6; }
+      .label-green  { fill: #3fb950; }
+    </style>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#30363d"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" width="960" height="200" rx="12"/>
+
+  <!-- Section Labels -->
+  <text x="80" y="28" class="section-label label-blue">Input</text>
+  <text x="360" y="28" class="section-label label-purple">Transform &amp; Multiply</text>
+  <text x="840" y="28" class="section-label label-green">Result</text>
+
+  <!-- Card 1: Input -->
+  <rect class="card card-input" x="20" y="50" width="120" height="110"/>
+  <text class="emoji" x="80" y="88">🔢</text>
+  <text class="title" x="80" y="112">Input</text>
+  <text class="subtitle" x="80" y="128">digit strings</text>
+
+  <!-- Arrow 1→2 -->
+  <line class="arrow" x1="140" y1="105" x2="160" y2="105"/>
+
+  <!-- Card 2: Chunking -->
+  <rect class="card card-process" x="160" y="50" width="120" height="110"/>
+  <text class="emoji" x="220" y="88">📊</text>
+  <text class="title" x="220" y="112">Chunking</text>
+  <text class="subtitle" x="220" y="128">base-10ᵏ</text>
+
+  <!-- Arrow 2→3 -->
+  <line class="arrow" x1="280" y1="105" x2="300" y2="105"/>
+
+  <!-- Card 3: Forward NTT -->
+  <rect class="card card-process" x="300" y="50" width="120" height="110"/>
+  <text class="emoji" x="360" y="88">⚡</text>
+  <text class="title" x="360" y="112">Forward NTT</text>
+  <text class="subtitle" x="360" y="128">mod p</text>
+
+  <!-- Arrow 3→4 -->
+  <line class="arrow" x1="420" y1="105" x2="440" y2="105"/>
+
+  <!-- Card 4: Pointwise -->
+  <rect class="card card-process" x="440" y="50" width="120" height="110"/>
+  <text class="emoji" x="500" y="88">✖️</text>
+  <text class="title" x="500" y="112">Pointwise</text>
+  <text class="subtitle" x="500" y="128">multiply</text>
+
+  <!-- Arrow 4→5 -->
+  <line class="arrow" x1="560" y1="105" x2="580" y2="105"/>
+
+  <!-- Card 5: Inverse NTT -->
+  <rect class="card card-process" x="580" y="50" width="120" height="110"/>
+  <text class="emoji" x="640" y="88">🔄</text>
+  <text class="title" x="640" y="112">Inverse NTT</text>
+  <text class="subtitle" x="640" y="128">scale by 1/n</text>
+
+  <!-- Arrow 5→6 -->
+  <line class="arrow" x1="700" y1="105" x2="720" y2="105"/>
+
+  <!-- Card 6: Carry -->
+  <rect class="card card-process" x="720" y="50" width="120" height="110"/>
+  <text class="emoji" x="780" y="88">📝</text>
+  <text class="title" x="780" y="112">Carry</text>
+  <text class="subtitle" x="780" y="128">propagation</text>
+
+  <!-- Arrow 6→7 -->
+  <line class="arrow" x1="840" y1="105" x2="860" y2="105"/>
+
+  <!-- Card 7: Result -->
+  <rect class="card card-output" x="860" y="60" width="80" height="90"/>
+  <text class="emoji" x="900" y="95">✅</text>
+  <text class="title" x="900" y="118">Result</text>
+
+  <!-- Bottom annotation -->
+  <text x="480" y="188" class="subtitle" style="font-size:10px;">All operations use 128-bit modular arithmetic (mod p = 2⁶⁴ − 2³² + 1)</text>
+</svg>

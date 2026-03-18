@@ -5,6 +5,15 @@
 #include <stdbool.h>
 #include <time.h>
 
+int DEBUG = 0;
+
+#define DBG_HEADER(msg) do { if (DEBUG) printf("\n\033[1;36m══════ %s ══════\033[0m\n", msg); } while(0)
+#define DBG_VAL(label, fmt, ...) do { if (DEBUG) printf("  \033[33m%-22s\033[0m " fmt "\n", label, __VA_ARGS__); } while(0)
+#define DBG_SEP() do { if (DEBUG) printf("\033[90m  ────────────────────────────────\033[0m\n"); } while(0)
+clock_t _dbg_t;
+#define DBG_TIME_START() _dbg_t = clock()
+#define DBG_TIME_END(label) do { if (DEBUG) { double _s = (double)(clock() - _dbg_t) / CLOCKS_PER_SEC; printf("  \033[32m%-22s\033[0m %.6f s\n", label, _s); } } while(0)
+
 const size_t MAX_PRACTICAL_DIGITS = 1000000000UL; // 1 billion digits ≈ 1GB just for result
 const size_t MAX_MEMORY_GB = 8; // Practical limit: 8GB
 const size_t MAX_SCRATCH_BYTES = MAX_MEMORY_GB * 1024UL * 1024UL * 1024UL;
@@ -55,78 +64,44 @@ void print_char_array(char* str, int len);
 size_t compute_scratch_space(int n);
 void print_int_array(char* name, int* array, int len);
 
-int main()
+int main(int argc, char *argv[])
 {
-	// clock_t start_t, end_t;
-	// double secs;
+	const char *s1 = NULL, *s2 = NULL;
+	int fact_n = 0;
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-d") == 0) { DEBUG = 1; continue; }
+		if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) { fact_n = atoi(argv[++i]); continue; }
+		if (!s1) s1 = argv[i]; else s2 = argv[i];
+	}
+	if (fact_n > 0) {
+		clock_t start = clock();
+		charArray* n_fact = factorial(fact_n);
+		clock_t end = clock();
+		double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+		printf("%d! = %s\n", fact_n, n_fact->list);
+		printf("total time taken = %.3lf seconds\n", seconds);
+		freecharArray(n_fact);
+	} else {
+		if (!s1) { s1 = "12345"; s2 = "67890"; }
+		if (!s2) { printf("Usage: %s <num1> <num2> [-d] | -f <N> [-d]\n", argv[0]); return 1; }
+		charArray* num1 = getStr(s1);
+		charArray* num2 = getStr(s2);
 
-	// int digits_num = 1000000;
-	// charArray* num1 = create_long_num(digits_num, '9');
-	// charArray* num2 = create_long_num(digits_num, '8');
+		DBG_HEADER("KARATSUBA MULTIPLICATION (Optimized)");
+		DBG_VAL("num1 length", "%d digits", num1->length);
+		DBG_VAL("num2 length", "%d digits", num2->length);
+		DBG_SEP();
 
-	// start_t = clock();
-	// charArray* result = mult_karatsuba(num1, num2);
-	// end_t = clock();
-	// secs = (double)(end_t - start_t) / CLOCKS_PER_SEC;
+		DBG_TIME_START();
+		charArray* product = mult_karatsuba(num1, num2);
+		DBG_TIME_END("karatsuba total");
 
-	// printf("length of result = %d\n", result->length);
-	// printf("time taken: %.3lf seconds\n", secs);
+		DBG_SEP();
+		DBG_VAL("result length", "%d digits", product->length);
 
-	// freecharArray(num1);
-	// freecharArray(num2);
-	// freecharArray(result);
-
-	// char* result2 = malloc((big + 1) * sizeof(char));
-	// char* result2Neg = malloc((big + 2) * sizeof(char));
-	// advanced_subtract_fast(result2, result2Neg, Num1, Num2, Len1, Len2);
-	// if (result2Neg[0] == '-') {
-	// 	free(result2);
-	// 	result2Neg = remove_leading_zeros(result2Neg, big + 1);
-	// 	printf("%s - %s = %s\n", Num1, Num2, result2Neg);
-	// 	free(result2Neg);
-	// }
-	// else {
-	// 	free(result2Neg);
-	// 	result2 = remove_leading_zeros(result2, big);
-	// 	printf("%s - %s = %s\n", Num1, Num2, result2);
-	// 	free(result2);
-	// }
-
-	// char* result3 = malloc((big + 1) * sizeof(char));
-	// char* result3Neg = malloc((big + 2) * sizeof(char));
-	// advanced_subtract_fast(result3, result3Neg, Num2, Num1, Len2, Len1);
-	// if (result3Neg[0] == '-') {
-	// 	free(result3);
-	// 	result3Neg = remove_leading_zeros(result3Neg, big + 1);
-	// 	printf("%s - %s = %s\n", Num2, Num1, result3Neg);
-	// 	free(result3Neg);
-	// }
-	// else {
-	// 	free(result3Neg);
-	// 	result3 = remove_leading_zeros(result3, big);
-	// 	printf("%s - %s = %s\n", Num2, Num1, result3);
-	// 	free(result3);
-	// }
-	// printf("Num1 = %s\n", Num1);
-	// printf("Num2 = %s\n", Num2);
-	// int scratch_size = compute_scratch_space(Len1);
-	// char* scratch_space = (char*)malloc(scratch_size*sizeof(char));
-	// char* result_buffer = (char*)malloc((2*Len1 + 2)*sizeof(char));
-
-	// karatsuba_mult_fast(result_buffer, scratch_space, Num1, Num2, Len1);
-	// // print_char_array(scratch_space, scratch_size);
-	// printf("%s * %s = %s\n", Num1, Num2, result_buffer);
-	// free(scratch_space);
-	// free(result_buffer);
-
-	int n = 100000;
-	clock_t start = clock();
-	charArray* n_fact = factorial(n);
-	clock_t end = clock();
-	double seconds = (double)(end - start) / CLOCKS_PER_SEC;
-	printf("%d! = %s\n", n, n_fact->list);
-	printf("total time taken = %.3lf seconds\n", seconds);
-	freecharArray(n_fact);
+		printf("%s * %s = %s\n", num1->list, num2->list, product->list);
+		freecharArray(num1); freecharArray(num2); freecharArray(product);
+	}
 }
 
 charArray* create_long_num(int len, char digit) {
