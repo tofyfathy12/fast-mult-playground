@@ -312,5 +312,5 @@ Explore, learn, and compute faster!
 ---
 
 <p align="center">
-  <i>Built with ❤️ and a love for number theory</i>
+  <i>Built with ❤️ for number theory</i>
 </p>
