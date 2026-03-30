@@ -27,9 +27,7 @@ thread_pool *construct_pool(int *threads_num);
 void insert_job(thread_pool *pool, Job *job);
 void destroy_pool(thread_pool *pool);
 
-
 int main() {
-
 
     return 0;
 }

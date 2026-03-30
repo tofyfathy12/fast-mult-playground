@@ -10,7 +10,6 @@ typedef struct nd {
     struct nd* next;
 } Node;
 
-
 typedef struct qu {
     Node* head;
     Node* tail;
@@ -31,30 +30,6 @@ void* dequeue(Queue* self);
 void* front(Queue* self);
 boolean isEmpty(Queue* self);
 Node* construct_node(void* data);
-
-// int main(int argc, char* argv[]) {
-//     Queue* myq = construct_queue();
-//     if (myq == NULL) {
-//         fprintf(stderr, "Error: Failed to allocate queue\n");
-//         return 1;
-//     }
-//     myq->print = print_str_queue;
-//     // for (int i = 1; i <= 10; i++) {
-//     //     int* num = (int*)malloc(sizeof(int));
-//     //     *num = i;
-//     //     myq->enqueue(myq, num);
-//     // }
-//     for (int i = 1; i <= 9; i++) {
-//         char* num = (char*)malloc(2 * sizeof(char));
-//         num[0] = i + '0';
-//         num[1] = '\0';
-//         myq->enqueue(myq, num);
-//     }
-//     myq->print(myq);
-//     destroy_queue(myq);
-
-//     return 0;
-// }
 
 void destroy_queue(Queue* q) {
     if (q == NULL) return;

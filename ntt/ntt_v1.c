@@ -5,45 +5,12 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <time.h>
+#include "../utils/utils.h"
+
 #define PRIME 850403524609
 #define PRIM_ROOT_G 13
 #define N 2147483648
 
-int DEBUG = 0;
-
-#define DBG_HEADER(msg) do { if (DEBUG) printf("\n\033[1;36m══════ %s ══════\033[0m\n", msg); } while(0)
-#define DBG_VAL(label, fmt, ...) do { if (DEBUG) printf("  \033[33m%-22s\033[0m " fmt "\n", label, __VA_ARGS__); } while(0)
-#define DBG_SEP() do { if (DEBUG) printf("\033[90m  ────────────────────────────────\033[0m\n"); } while(0)
-clock_t _dbg_t;
-#define DBG_TIME_START() _dbg_t = clock()
-#define DBG_TIME_END(label) do { if (DEBUG) { double _s = (double)(clock() - _dbg_t) / CLOCKS_PER_SEC; printf("  \033[32m%-22s\033[0m %.6f s\n", label, _s); } } while(0)
-
-typedef struct arr {
-	int* list;
-	int length;
-} intArray;
-
-typedef struct arr2 {
-	char* list;
-	int length;
-} charArray;
-
-typedef struct arr3 {
-	charArray** list;
-	int length;
-} strArray;
-
-charArray* create_long_num(int len, char digit);
-void freeintArray(intArray* arr);
-void freecharArray(charArray* arr);
-void freestrArray(strArray* arr);
-int bitrev(int num, int bits_num);
-void swap_int(int* a, int* b);
-void swap_longlong(unsigned long long* a, unsigned long long* b);
-unsigned long long next2pow(int deg);
-long long modinv(int base, long long mod);
-unsigned long long modinv_fermat(unsigned long long base, unsigned long long mod);
-unsigned long long modpow(unsigned long long base, unsigned long long power, unsigned long long mod);
 unsigned long long* get_coffs_NTT(charArray* num, int n);
 unsigned long long* nthRoots_NTT(int n, unsigned long long g, unsigned long long p);
 void nthRoots_NTT_inv(unsigned long long* result_buffer, int n, unsigned long long g_inv, unsigned long long p);
@@ -58,17 +25,16 @@ intArray* get_primes_exps(intArray* primes, int n);
 strArray* get_powered_primes(intArray* primes, intArray* primesExps);
 charArray* mulpowprimes(strArray* powered_primes, int start, int end);
 charArray* factorial(int n);
-charArray* getStr(const char * str);
-void print_int_array(char* name, int* array, int len);
-void print_longlong_array(char* name, unsigned long long* array, int len);
 
 int main(int argc, char *argv[]) {
 	const char *s1 = NULL, *s2 = NULL, *pow_base = NULL;
 	int fact_n = 0, pow_exp = 0;
+	DEBUG_OP = DBG_OP_MULT;
 	for (int i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-d") == 0) { DEBUG = 1; continue; }
-		if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) { fact_n = atoi(argv[++i]); continue; }
-		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); continue; }
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "-d1") == 0) { DEBUG = 1; continue; }
+		if (strcmp(argv[i], "-d2") == 0) { DEBUG = 2; continue; }
+		if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) { fact_n = atoi(argv[++i]); DEBUG_OP = DBG_OP_FACT; continue; }
+		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); DEBUG_OP = DBG_OP_POW; continue; }
 		if (!s1) s1 = argv[i]; else s2 = argv[i];
 	}
 	if (fact_n > 0) {
@@ -93,108 +59,6 @@ int main(int argc, char *argv[]) {
 		printf("%s * %s = %s\n", num1->list, num2->list, product->list);
 		freecharArray(num1); freecharArray(num2); freecharArray(product);
 	}
-}
-
-charArray* create_long_num(int len, char digit) {
-    char* num = (char*)malloc(len + 1);
-	if (!num) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-    if (num == NULL) exit(1);
-    memset(num, digit, len);
-    num[len] = '\0';
-	charArray* numArray = (charArray*)malloc(sizeof(charArray));
-	numArray->list = num;
-	numArray->length = len;
-    return numArray;
-}
-
-void freeintArray(intArray* arr) {
-	free(arr->list);
-	free(arr);
-}
-
-void freecharArray(charArray* arr) {
-	free(arr->list);
-	free(arr);
-}
-
-void freestrArray(strArray* arr) {
-	for (int i = 0; i < arr->length; i++) {
-		freecharArray(arr->list[i]);
-	}
-	free(arr->list);
-	free(arr);
-}
-
-int bitrev(int num, int bits_num) {
-	int result = 0;
-	for (int i = 0; i < bits_num; i++) {
-		if ((num & (1 << i))) {
-			result |= (1 << (bits_num - 1 - i));
-		}
-	}
-	return result;
-}
-
-void swap_int(int* a, int* b) {
-	int temp = *a;
-	*a = *b;
-	*b = temp;
-}
-
-void swap_longlong(unsigned long long* a, unsigned long long* b) {
-	unsigned long long temp = *a;
-	*a = *b;
-	*b = temp;
-}
-
-unsigned long long next2pow(int deg) {
-	unsigned long long power = (unsigned long long)ceil(log2(deg));
-	unsigned long long result = (unsigned long long)pow(2, power);
-	return result;
-}
-
-long long modinv(int base, long long mod) {
-	long long big = mod;
-	long long small = (long long)base;
-
-	long long s_big = 1, t_big = 0;
-	long long s_small = 0, t_small = 1;
-	while (small > 0) {
-		long long q = (long long)(big / small);
-		long long temp_small = big % small;
-		big = small;
-		small = temp_small;
-		if (small == 0)
-			break;
-
-		long long s = s_big - q * s_small;
-		long long t = t_big - q * t_small;
-		s_big = s_small; t_big = t_small;
-		s_small = s; t_small = t;
-	}
-	if (s_small * mod + t_small * base != 1) {
-		return 0; //indicates that no modular inverse exists
-	}
-	return (t_small + mod) % mod;
-}
-
-unsigned long long modinv_fermat(unsigned long long base, unsigned long long mod) {
-	return modpow(base, mod - 2, mod);
-}
-
-unsigned long long modpow(unsigned long long base, unsigned long long power, unsigned long long mod) {
-	base %= mod;
-	unsigned long long result = 1;
-	while (power > 0) {
-		if (power % 2 == 1) {
-			__uint128_t product = (__uint128_t) result * base;
-			result = product % mod;
-		}
-		__uint128_t square = (__uint128_t) base * base;	
-		base = square % mod;
-		power /= 2;
-	}
-	return result;
 }
 
 unsigned long long* get_coffs_NTT(charArray* num, int n) {
@@ -235,7 +99,7 @@ void eval_NTT(unsigned long long* Xs, unsigned long long* coffs, int n, unsigned
 		}
 	}
 
-	if (DEBUG) print_longlong_array("coffs_scrambled", coffs, n);
+	if (DEBUG >= 2) print_longlong_array("coffs_scrambled", coffs, n);
 
 	for (int size = 2; size <= n; size *= 2) {
 		for (int i = 0; i < n; i+= size) {
@@ -277,7 +141,7 @@ void eval_INTT(unsigned long long* Xs_inv, unsigned long long* NTT_result, int n
 		}
 	}
 
-	if (DEBUG) print_longlong_array("NTT_result_scrambled", NTT_result, n);
+	if (DEBUG >= 2) print_longlong_array("NTT_result_scrambled", NTT_result, n);
 
 	for (int size = 2; size <= n; size *= 2) {
 		for (int i = 0; i < n; i+= size) {
@@ -333,6 +197,9 @@ charArray* get_final_result_NTT(unsigned long long* INTT_result, int n, int len1
 }
 
 charArray* mult_NTT(charArray* num1, charArray* num2) {
+	if ((num1->length == 1 && num1->list[0] == '0') || (num2->length == 1 && num2->list[0] == '0')) {
+		return getStr("0");
+	}
 	int len1 = num1->length;
 	int len2 = num2->length;
 	int deg = len1 + len2 - 1;
@@ -354,12 +221,12 @@ charArray* mult_NTT(charArray* num1, charArray* num2) {
 	unsigned long long* coffs2 = get_coffs_NTT(num2, n);
 	DBG_TIME_END("coefficients");
 
-	if (DEBUG) print_longlong_array("coffs1", coffs1, n);
-	if (DEBUG) print_longlong_array("coffs2", coffs2, n);
+	if (DEBUG >= 2) print_longlong_array("coffs1", coffs1, n);
+	if (DEBUG >= 2) print_longlong_array("coffs2", coffs2, n);
 
 	unsigned long long* Xs = nthRoots_NTT(n, g, p);
 
-	if (DEBUG) print_longlong_array("Xs", Xs, n);
+	if (DEBUG >= 2) print_longlong_array("Xs", Xs, n);
 
 	DBG_TIME_START();
 	eval_NTT(Xs, coffs1, n, p);
@@ -368,8 +235,8 @@ charArray* mult_NTT(charArray* num1, charArray* num2) {
 	unsigned long long* eval1 = coffs1;
 	unsigned long long* eval2 = coffs2;
 
-	if (DEBUG) print_longlong_array("eval1", eval1, n);
-	if (DEBUG) print_longlong_array("eval2", eval2, n);
+	if (DEBUG >= 2) print_longlong_array("eval1", eval1, n);
+	if (DEBUG >= 2) print_longlong_array("eval2", eval2, n);
 
 	DBG_TIME_START();
 	pointwise_mult_NTT(eval1, eval1, eval2, n, p);
@@ -377,7 +244,7 @@ charArray* mult_NTT(charArray* num1, charArray* num2) {
 	unsigned long long* mult_result = eval1;
 	free(eval2);
 
-	if (DEBUG) print_longlong_array("mult_result", mult_result, n);
+	if (DEBUG >= 2) print_longlong_array("mult_result", mult_result, n);
 
 	unsigned long long g_inv = modinv_fermat(g, p);
 	DBG_VAL("g_inv", "%llu", g_inv);
@@ -385,7 +252,7 @@ charArray* mult_NTT(charArray* num1, charArray* num2) {
 	nthRoots_NTT_inv(Xs, n, g_inv, p);
 	unsigned long long* Xs_inv = Xs;
 
-	if (DEBUG) print_longlong_array("Xs_inv", Xs_inv, n);
+	if (DEBUG >= 2) print_longlong_array("Xs_inv", Xs_inv, n);
 
 	DBG_TIME_START();
 	eval_INTT(Xs_inv, mult_result, n, p);
@@ -393,7 +260,7 @@ charArray* mult_NTT(charArray* num1, charArray* num2) {
 	free(Xs_inv);
 	DBG_TIME_END("inverse NTT");
 
-	if (DEBUG) print_longlong_array("unscaled_INTT_eval", INTT_eval, n);
+	if (DEBUG >= 2) print_longlong_array("unscaled_INTT_eval", INTT_eval, n);
 
 	unsigned long long n_inv = modinv_fermat(n, p);
 	DBG_VAL("n_inv", "%llu", n_inv);
@@ -402,7 +269,7 @@ charArray* mult_NTT(charArray* num1, charArray* num2) {
 		INTT_eval[i] = (product) % p;
 	}
 
-	if (DEBUG) print_longlong_array("scaled_INTT_eval", INTT_eval, n);
+	if (DEBUG >= 2) print_longlong_array("scaled_INTT_eval", INTT_eval, n);
 
 	charArray* final_result = get_final_result_NTT(INTT_eval, n, len1, len2);
 	free(INTT_eval);
@@ -414,6 +281,7 @@ charArray* mult_NTT(charArray* num1, charArray* num2) {
 }
 
 charArray* mypow_NTT(charArray* num, int power) {
+	DBG_POW_HEADER("EXPONENTIATION NTT");
 	charArray* result = getStr("1");
 	charArray* Num = getStr(num->list);
 	while (power > 0) {
@@ -545,27 +413,27 @@ charArray* mulpowprimes(strArray* powered_primes, int start, int end) {
 charArray* factorial(int n) {
 	intArray* primes = sieve_primes(n);
 
-	if (DEBUG) print_int_array("primes", primes->list, primes->length);
+	if (DEBUG >= 2) print_int_array("primes", primes->list, primes->length);
 
 	intArray* primes_exps = get_primes_exps(primes, n);
 
-	if (DEBUG) print_int_array("primes' powers", primes_exps->list, primes_exps->length);
+	if (DEBUG >= 2) print_int_array("primes' powers", primes_exps->list, primes_exps->length);
 
 	strArray* powered_primes = get_powered_primes(primes, primes_exps);
 
+	if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+		DBG_FACT_HEADER("PRIME POWER RESULTS");
+		for (int i = 0; i < powered_primes->length; i++) {
+			char prefix[64];
+			sprintf(prefix, "%d ^ %d", primes->list[i], primes_exps->list[i]);
+			print_truncated_str(prefix, powered_primes->list[i], 30);
+		}
+		DBG_FACT_HEADER("DIVIDE AND CONQUER TREE");
+	}
+
 	freeintArray(primes);
 	freeintArray(primes_exps);
-	// for (int i = 0; i < powered_primes->length; i++) { //debugging
-	// printf("%d ^ %d = %s\n", primes->list[i], primes_exps->list[i], powered_primes->list[i]->list); //debugging
-	// } //debugging
 
-	// int coffs_buffer_len = 3 * next2pow(prefix_digits_sum[powered_primes->length] - 1);
-	// unsigned long long* coffs_buffer = (unsigned long long*)malloc((coffs_buffer_len) * sizeof(unsigned long long));
-	// size_t factorial_result_size = compute_result_space_factorial(0, powered_primes->length, prefix_digits_sum);
-	// charArray* factorial_result = (charArray*)malloc(sizeof(charArray));
-	// factorial_result->list = (char*)malloc(factorial_result_size * sizeof(char));
-
-	// mulpowprimes_fast(factorial_result, coffs_buffer, coffs_buffer_len, powered_primes, 0, powered_primes->length, prefix_digits_sum);
 	charArray* factorial_result = mulpowprimes(powered_primes, 0, powered_primes->length);
 
 	freestrArray(powered_primes);
@@ -573,37 +441,3 @@ charArray* factorial(int n) {
 	return factorial_result;
 }
 
-charArray* getStr(const char * str) {
-	int len = strlen(str);
-	char *result = (char*)malloc((len + 1)*sizeof(char));
-	if (!result) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-	result[len] = '\0';
-	for (int i = 0; i < len; i++) {
-		result[i] = str[i];
-	}
-	charArray* resultArr = (charArray*)malloc(sizeof(charArray));
-	if (!resultArr) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-	resultArr->list = result;
-	resultArr->length = len;
-	return resultArr;
-}
-
-void print_int_array(char* name, int* array, int len) {
-	printf("%s = [", name);
-	for (int i = 0; i < len; i++) {
-		printf("%d", array[i]);
-		if (i < len - 1)
-			printf(", ");
-	}
-	printf("]\n");
-}
-
-void print_longlong_array(char* name, unsigned long long* array, int len) {
-	printf("%s = [", name);
-	for (int i = 0; i < len; i++) {
-		printf("%llu", array[i]);
-		if (i < len - 1)
-			printf(", ");
-	}
-	printf("]\n");
-}

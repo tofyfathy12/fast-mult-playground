@@ -4,32 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include <time.h>
+#include "../utils/utils.h"
 
-int DEBUG = 0;
-
-#define DBG_HEADER(msg) do { if (DEBUG) printf("\n\033[1;36m══════ %s ══════\033[0m\n", msg); } while(0)
-#define DBG_VAL(label, fmt, ...) do { if (DEBUG) printf("  \033[33m%-22s\033[0m " fmt "\n", label, __VA_ARGS__); } while(0)
-#define DBG_SEP() do { if (DEBUG) printf("\033[90m  ────────────────────────────────\033[0m\n"); } while(0)
-clock_t _dbg_t;
-#define DBG_TIME_START() _dbg_t = clock()
-#define DBG_TIME_END(label) do { if (DEBUG) { double _s = (double)(clock() - _dbg_t) / CLOCKS_PER_SEC; printf("  \033[32m%-22s\033[0m %.6f s\n", label, _s); } } while(0)
-
-typedef struct arr {
-	int* list;
-	int length;
-} intArray;
-
-typedef struct arr2 {
-	char* list;
-	int length;
-} charArray;
-
-typedef struct arr3 {
-	charArray** list;
-	int length;
-} strArray;
-
-charArray* create_long_num(int len, char digit);
 charArray* mulpowprimes(strArray* powered_primes, int start, int end);
 strArray* get_powered_primes(intArray* primes, intArray* primesExps);
 intArray* get_primes_exps(intArray* primes, int n);
@@ -42,18 +18,15 @@ charArray* int_to_string(int num);
 char* substring(const char* str, int start, int end);
 charArray* pad(charArray *num, int req_len);
 charArray* append_zeros(charArray* num, int zeros_num);
-charArray* getStr(const char * str);
-void freeintArray(intArray* arr);
-void freecharArray(charArray* arr);
-void freestrArray(strArray* arr);
-void print_int_array(char* name, int* array, int len);
 
 int main(int argc, char *argv[]) {
 	const char *s1 = NULL, *s2 = NULL, *pow_base = NULL;
 	int pow_exp = 0;
+	DEBUG_OP = DBG_OP_MULT;
 	for (int i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-d") == 0) { DEBUG = 1; continue; }
-		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); continue; }
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "-d1") == 0) { DEBUG = 1; continue; }
+		if (strcmp(argv[i], "-d2") == 0) { DEBUG = 2; continue; }
+		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); DEBUG_OP = DBG_OP_POW; continue; }
 		if (!s1) s1 = argv[i]; else s2 = argv[i];
 	}
 	if (pow_base) {
@@ -76,7 +49,7 @@ int main(int argc, char *argv[]) {
 
 		if (len2 > len1) { num1 = pad(num1, len2); len1 = len2; }
 		else if (len1 > len2) { num2 = pad(num2, len1); len2 = len1; }
-		
+
 		DBG_TIME_START();
 		charArray* product = karatsuba_mult(num1, 0, len1, num2, 0, len2);
 		DBG_TIME_END("karatsuba total");
@@ -89,29 +62,15 @@ int main(int argc, char *argv[]) {
 	}
 }
 
-charArray* create_long_num(int len, char digit) {
-    char* num = (char*)malloc(len + 1);
-	if (!num) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-    if (num == NULL) exit(1);
-    memset(num, digit, len);
-    num[len] = '\0';
-	charArray* numArray = (charArray*)malloc(sizeof(charArray));
-	numArray->list = num;
-	numArray->length = len;
-    return numArray;
-}
-
 charArray* mulpowprimes(strArray* powered_primes, int start, int end) {
 	int len = end - start;
 	if (len == 1) {
 		charArray* num = getStr(powered_primes->list[start]->list);
-		// printf("multiplying: %s by 1\n", num->list);
 		return num;
 	}
 	else if (len == 2) {
 		charArray* num1 = powered_primes->list[start];
 		charArray* num2 = powered_primes->list[start + 1];
-		// printf("multiplying: %s by %s\n", num1->list, num2->list);
 		if (num1->length < num2->length) {
 			num1 = pad(num1, num2->length);
 			powered_primes->list[start] = num1;
@@ -225,19 +184,9 @@ charArray* power(charArray* num, int exp) {
 	charArray* NUM = getStr(num->list);
 	while (exp > 0) {
 		if (exp % 2 == 0) {
-			// char* tempNum = (char*)malloc((2*NUM->length + 3)*sizeof(char));/
-			// if (!tempNum) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-			// char* scratch_buffer = (char*)malloc((10*NUM->length + 256)*sizeof(char));
-			// if (!scratch_buffer) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-			// karatsuba_mult_fast(tempNum, scratch_buffer, NUM->list, NUM->list, NUM->length);
-			// free(scratch_buffer);
 			charArray* temp_num = karatsuba_mult(NUM, 0, NUM->length, NUM, 0, NUM->length);
 			freecharArray(NUM);
             NUM = temp_num;
-			// NUM = (charArray*)malloc(sizeof(charArray));
-			// if (!NUM) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-			// NUM->list = tempNum;
-			// NUM->length = strlen(tempNum);
 			exp /= 2;
 		}
 		else {
@@ -247,19 +196,9 @@ charArray* power(charArray* num, int exp) {
 			else if (NUM->length < result->length) {
 				NUM = pad(NUM, result->length);
 			}
-			// char* tempResult = (char*)malloc((2 * NUM->length + 3)*sizeof(char));
-			// if (!tempResult) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-			// char* scratch_buffer = (char*)malloc((10 * NUM->length + 256) * sizeof(char));
-			// if (!scratch_buffer) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-			// karatsuba_mult_fast(tempResult, scratch_buffer, NUM->list, result->list, NUM->length);
-			// free(scratch_buffer);
 			charArray* tempResult = karatsuba_mult(NUM, 0, NUM->length, result, 0, result->length);
 			freecharArray(result);
             result = tempResult;
-			// result = (charArray*)malloc(sizeof(charArray));
-			// if (!result) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-			// result->list = tempResult;
-			// result->length = strlen(tempResult);
 			exp -= 1;
 		}
 	}
@@ -280,14 +219,6 @@ charArray* karatsuba_mult(charArray* num1, int start1, int end1, charArray* num2
 		len1 = len2;
 	}
 
-	//char* substr1 = substring(num1, start1, end1);
-//	char* substr2 = substring(num2, start2, end2);
-//	printf("multiplying: %s by %s\n", substr1, substr2); //debugging
-//	printf("len1 = %d\n", len1); //debugging
-//	printf("len2 = %d\n", len2); //debugging
-//	free(substr1);
-//	free(substr2);
-
 	if (len1 <= 9 && len2 <= 9) {
 		long long Num1 = 0, Num2 = 0;
 		for (int i = start1; i < end1; i++) {
@@ -299,7 +230,7 @@ charArray* karatsuba_mult(charArray* num1, int start1, int end1, charArray* num2
 		long long resultNum = Num1 * Num2;
 		charArray* resultArr = (charArray*)malloc(sizeof(charArray));
 		if (!resultArr) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-		
+
 		resultArr->length = 1;
 		if (resultNum > 0) {
 			resultArr->length = (int)(log10(resultNum)) + 1;
@@ -403,7 +334,7 @@ charArray *advanced_subtract(charArray* num1, int start1, int end1, charArray* n
 			resultNeg[0] = '-';
 			charArray* resultNegArr = (charArray*)malloc(sizeof(charArray));
 			if (!resultNegArr) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-			
+
 			resultNegArr->list = resultNeg;
 			resultNegArr->length = big - zero_index + 1;
 			return resultNegArr;
@@ -649,45 +580,3 @@ charArray* append_zeros(charArray* num, int zeros_num) {
 	return num;
 }
 
-charArray* getStr(const char * str) {
-	int len = strlen(str);
-	char *result = (char*)malloc((len + 1)*sizeof(char));
-	if (!result) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-	result[len] = '\0';
-	for (int i = 0; i < len; i++) {
-		result[i] = str[i];
-	}
-	charArray* resultArr = (charArray*)malloc(sizeof(charArray));
-	if (!resultArr) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-	resultArr->list = result;
-	resultArr->length = len;
-	return resultArr;
-}
-
-void freeintArray(intArray* arr) {
-	free(arr->list);
-	free(arr);
-}
-
-void freecharArray(charArray* arr) {
-	free(arr->list);
-	free(arr);
-}
-
-void freestrArray(strArray* arr) {
-	for (int i = 0; i < arr->length; i++) {
-		freecharArray(arr->list[i]);
-	}
-	free(arr->list);
-	free(arr);
-}
-
-void print_int_array(char* name, int* array, int len) {
-	printf("%s = [", name);
-	for (int i = 0; i < len; i++) {
-		printf("%d", array[i]);
-		if (i < len - 1)
-			printf(", ");
-	}
-	printf("]\n");
-}

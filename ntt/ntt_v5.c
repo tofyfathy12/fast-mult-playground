@@ -6,49 +6,12 @@
 #include <math.h>
 #include <pthread.h>
 #include <time.h>
+#include "../utils/utils.h"
+
 #define PRIME 18446744069414584321ULL
 #define PRIM_ROOT_G 7
 #define N 8388608
 
-int DEBUG = 0;
-
-#define DBG_HEADER(msg) do { if (DEBUG) printf("\n\033[1;36m══════ %s ══════\033[0m\n", msg); } while(0)
-#define DBG_VAL(label, fmt, ...) do { if (DEBUG) printf("  \033[33m%-22s\033[0m " fmt "\n", label, __VA_ARGS__); } while(0)
-#define DBG_SEP() do { if (DEBUG) printf("\033[90m  ────────────────────────────────\033[0m\n"); } while(0)
-#define DBG_ARRAY(fn, name, arr, len) do { if (DEBUG) { printf("  \033[33m%-22s\033[0m ", name); fn(name, arr, len); } } while(0)
-clock_t _dbg_t;
-#define DBG_TIME_START() _dbg_t = clock()
-#define DBG_TIME_END(label) do { if (DEBUG) { double _s = (double)(clock() - _dbg_t) / CLOCKS_PER_SEC; printf("  \033[32m%-22s\033[0m %.6f s\n", label, _s); } } while(0)
-
-typedef struct arr
-{
-	int *list;
-	int length;
-} intArray;
-
-typedef struct arr2
-{
-	char *list;
-	int length;
-} charArray;
-
-typedef struct arr3
-{
-	charArray **list;
-	int length;
-} strArray;
-
-charArray *create_long_num(int len, char digit);
-void freeintArray(intArray *arr);
-void freecharArray(charArray *arr);
-void freestrArray(strArray *arr);
-int bitrev(int num, int bits_num);
-void swap_int(int *a, int *b);
-void swap_longlong(unsigned long long *a, unsigned long long *b);
-unsigned long long next2pow(unsigned long long deg);
-long long modinv(int base, unsigned long long mod);
-unsigned long long modinv_fermat(unsigned long long base, unsigned long long mod);
-unsigned long long modpow(unsigned long long base, unsigned long long power, unsigned long long mod);
 void get_coffs_NTT_fast_base(unsigned long long *coffs_buffer, charArray *num, int n, int chunk_length);
 void nthRoots_NTT_fast(unsigned long long *result_buffer, int n, unsigned long long g, unsigned long long p);
 void nthRoots_NTT_inv(unsigned long long *result_buffer, int n, unsigned long long g_inv, unsigned long long p);
@@ -67,9 +30,7 @@ strArray *get_powered_primes_fast_base(intArray *primes, intArray *primesExps, i
 void mulpowprimes_fast_base(charArray *result_buffer, unsigned long long *coffs_buffer, int coffs_buffer_len, strArray *powered_primes, int start, int end, int *prefix_digits_sum, int chunk_length);
 size_t compute_result_space_factorial(int start, int end, int *prefix_digits_sum);
 charArray *factorial_base_fast(int n, int chunk_length);
-charArray *getStr(const char *str);
-void print_int_array(char *name, int *array, int len);
-void print_longlong_array(char *name, unsigned long long *array, int len);
+
 void remlzeros(charArray *num);
 
 int main(int argc, char *argv[])
@@ -77,10 +38,12 @@ int main(int argc, char *argv[])
 	unsigned long long chunk_length = 5;
 	const char *s1 = NULL, *s2 = NULL, *pow_base = NULL;
 	int fact_n = 0, pow_exp = 0;
+	DEBUG_OP = DBG_OP_MULT;
 	for (int i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-d") == 0) { DEBUG = 1; continue; }
-		if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) { fact_n = atoi(argv[++i]); continue; }
-		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); continue; }
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "-d1") == 0) { DEBUG = 1; continue; }
+		if (strcmp(argv[i], "-d2") == 0) { DEBUG = 2; continue; }
+		if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) { fact_n = atoi(argv[++i]); DEBUG_OP = DBG_OP_FACT; continue; }
+		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); DEBUG_OP = DBG_OP_POW; continue; }
 		if (!s1) s1 = argv[i]; else s2 = argv[i];
 	}
 	if (fact_n > 0) {
@@ -105,133 +68,6 @@ int main(int argc, char *argv[])
 		printf("%s * %s = %s\n", num1->list, num2->list, product->list);
 		freecharArray(num1); freecharArray(num2); freecharArray(product);
 	}
-}
-
-charArray *create_long_num(int len, char digit)
-{
-	char *num = (char *)malloc(len + 1);
-	if (!num)
-	{
-		printf("Memory allocation failed at line: %d\n", __LINE__);
-		exit(EXIT_FAILURE);
-	}
-	if (num == NULL)
-		exit(1);
-	memset(num, digit, len);
-	num[len] = '\0';
-	charArray *numArray = (charArray *)malloc(sizeof(charArray));
-	numArray->list = num;
-	numArray->length = len;
-	return numArray;
-}
-
-void freeintArray(intArray *arr)
-{
-	free(arr->list);
-	free(arr);
-}
-
-void freecharArray(charArray *arr)
-{
-	free(arr->list);
-	free(arr);
-}
-
-void freestrArray(strArray *arr)
-{
-	for (int i = 0; i < arr->length; i++)
-	{
-		freecharArray(arr->list[i]);
-	}
-	free(arr->list);
-	free(arr);
-}
-
-int bitrev(int num, int bits_num)
-{
-	int result = 0;
-	for (int i = 0; i < bits_num; i++)
-	{
-		if ((num & (1 << i)))
-		{
-			result |= (1 << (bits_num - 1 - i));
-		}
-	}
-	return result;
-}
-
-void swap_int(int *a, int *b)
-{
-	int temp = *a;
-	*a = *b;
-	*b = temp;
-}
-
-void swap_longlong(unsigned long long *a, unsigned long long *b)
-{
-	unsigned long long temp = *a;
-	*a = *b;
-	*b = temp;
-}
-
-unsigned long long next2pow(unsigned long long deg)
-{
-	int power = (int)ceil(log2(deg));
-	unsigned long long result = (unsigned long long)pow(2, power);
-	return result;
-}
-
-long long modinv(int base, unsigned long long mod)
-{
-	unsigned long long big = mod;
-	long long small = (long long)base;
-
-	long long s_big = 1, t_big = 0;
-	long long s_small = 0, t_small = 1;
-	while (small > 0)
-	{
-		long long q = (long long)(big / small);
-		long long temp_small = big % small;
-		big = small;
-		small = temp_small;
-		if (small == 0)
-			break;
-
-		long long s = s_big - q * s_small;
-		long long t = t_big - q * t_small;
-		s_big = s_small;
-		t_big = t_small;
-		s_small = s;
-		t_small = t;
-	}
-	if (s_small * mod + t_small * base != 1)
-	{
-		return 0; // indicates that no modular inverse exists
-	}
-	return (t_small + mod) % mod;
-}
-
-unsigned long long modinv_fermat(unsigned long long base, unsigned long long mod)
-{
-	return modpow(base, mod - 2, mod);
-}
-
-unsigned long long modpow(unsigned long long base, unsigned long long power, unsigned long long mod)
-{
-	base %= mod;
-	unsigned long long result = 1;
-	while (power > 0)
-	{
-		if (power % 2 == 1)
-		{
-			__uint128_t product = (__uint128_t)result * base;
-			result = product % mod;
-		}
-		__uint128_t square = (__uint128_t)base * base;
-		base = square % mod;
-		power /= 2;
-	}
-	return result;
 }
 
 void get_coffs_NTT_fast_base(unsigned long long *coffs_buffer, charArray *num, int n, int chunk_length)
@@ -288,8 +124,6 @@ void eval_NTT(unsigned long long *Xs, unsigned long long *coffs, int n, unsigned
 		}
 	}
 
-	//	print_longlong_array("coffs_scrambled", coffs, n); //debugging
-
 	for (int size = 2; size <= n; size *= 2)
 	{
 		for (int i = 0; i < n; i += size)
@@ -342,8 +176,6 @@ void eval_INTT(unsigned long long *Xs_inv, unsigned long long *NTT_result, int n
 		}
 	}
 
-	//	print_longlong_array("NTT_result_scrambled", NTT_result, n); //debugging
-
 	for (int size = 2; size <= n; size *= 2)
 	{
 		for (int i = 0; i < n; i += size)
@@ -394,13 +226,12 @@ void get_final_result_NTT_base_fast(charArray *result_buffer, unsigned long long
 	unsigned long long carry = 0;
 	unsigned long long digits_length = chunk_length;
 	unsigned long long decimal_power_base = (unsigned long long)(pow(10, chunk_length) + 0.5);
-	// print_longlong_array("INTT_result", INTT_result, n); //debugging
 	for (int i = 0; i < n; i++)
 	{
 		unsigned long long sum = INTT_result[i] + carry;
 		unsigned long long digit = sum % decimal_power_base;
 		carry = sum / decimal_power_base;
-		// printf("%dth %lld digits = %lld\n", i, digits_length, digit); //debugging
+		if (DEBUG >= 2 && DEBUG_OP == DBG_OP_MULT) printf("  \033[36m➤\033[0m \033[90m%dth %lld digits:\033[0m \033[33m%llu\033[0m\n", i, digits_length, digit);
 		int count = 0;
 		while ((digit > 0 || (count < (int)digits_length && (i < n - 1 || carry > 0))) && index >= 0)
 		{
@@ -409,17 +240,15 @@ void get_final_result_NTT_base_fast(charArray *result_buffer, unsigned long long
 			digit /= 10;
 			count++;
 		}
-		// printf("=============================================\n"); //debugging
 	}
-	// printf("carry = %llu\n", carry);
-	// printf(".\n.\n.\n.\n.\n.\n.\n"); //debugging
+	if (DEBUG >= 2 && DEBUG_OP == DBG_OP_MULT) printf("  \033[36m➤\033[0m \033[90mfinal carry:\033[0m \033[33m%llu\033[0m\n", carry);
 	while (index >= 0)
 	{
 		result_buffer->list[index] = (char)((carry % 10ULL) + '0');
 		index--;
 		carry /= 10ULL;
 	}
-	// printf("result before removing leading zeros = %s\n", result_buffer->list); //debugging
+	if (DEBUG >= 2 && DEBUG_OP == DBG_OP_MULT) print_truncated_str("result (before strip)", result_buffer, 30);
 	int zero_index = 0;
 	while (result_buffer->list[zero_index] == '0')
 		zero_index++;
@@ -428,20 +257,19 @@ void get_final_result_NTT_base_fast(charArray *result_buffer, unsigned long long
 		result_buffer->list[i - zero_index] = result_buffer->list[i];
 	}
 	result_buffer->length -= zero_index;
-	// printf("result after removing leading zeros = %s\n", result_buffer->list); //debugging
-	// printf("========================================\n"); //debugging
+	if (DEBUG >= 2 && DEBUG_OP == DBG_OP_MULT) print_truncated_str("result (after strip)", result_buffer, 30);
 }
 
 charArray *mult_NTT_fast_base(charArray *num1, charArray *num2, int chunk_length)
 {
+	if ((num1->length == 1 && num1->list[0] == '0') || (num2->length == 1 && num2->list[0] == '0')) {
+		return getStr("0");
+	}
 
 	int len1 = num1->length, len2 = num2->length;
 
 	int chunks_len1 = (len1 % chunk_length == 0) ? len1 / chunk_length : len1 / chunk_length + 1;
 	int chunks_len2 = (len2 % chunk_length == 0) ? len2 / chunk_length : len2 / chunk_length + 1;
-
-	//	printf("length of coffs1 = %d\n", chunks_len1);
-	//	printf("length of coffs2 = %d\n", chunks_len2);
 
 	int deg = chunks_len1 + chunks_len2 - 1;
 	int pre_n = next2pow(deg);
@@ -492,7 +320,7 @@ void mult_fast_base(charArray *result_buffer, unsigned long long *coffs_buffer, 
 	DBG_TIME_START();
 	// thread1
 	get_coffs_NTT_fast_base(coffs1, num1, n, chunk_length);
-	
+
 	// thread2
 	get_coffs_NTT_fast_base(coffs2, num2, n, chunk_length);
 
@@ -506,7 +334,7 @@ void mult_fast_base(charArray *result_buffer, unsigned long long *coffs_buffer, 
 	DBG_ARRAY(print_longlong_array, "coffs1", coffs1, n);
 	DBG_ARRAY(print_longlong_array, "coffs2", coffs2, n);
 	DBG_ARRAY(print_longlong_array, "Xs", Xs, n);
-	
+
 	DBG_TIME_START();
 	// thread1
 	eval_NTT(Xs, coffs1, n, p);
@@ -563,12 +391,13 @@ void mult_fast_base(charArray *result_buffer, unsigned long long *coffs_buffer, 
 	DBG_TIME_START();
 	get_final_result_NTT_base_fast(result_buffer, INTT_eval, n, estimated_result_length, chunk_length);
 	DBG_TIME_END("carry & finalize");
-	
+
 	DBG_SEP();
 }
 
 charArray *mypow_NTT_base_fast(charArray *num, int power, int chunk_length)
 {
+	DBG_POW_HEADER("EXPONENTIATION NTT");
 	int len = num->length;
 	int chunks_length = (len % chunk_length == 0) ? len / chunk_length : len / chunk_length + 1;
 	int coffs_scratch_len = 3 * next2pow(power * chunks_length);
@@ -588,20 +417,19 @@ charArray *mypow_NTT_base_fast(charArray *num, int power, int chunk_length)
 
 void power_base_fast(charArray *result_buffer, charArray *scratch_space, unsigned long long *coffs_scratch_space, int coffs_scratch_len, charArray *num, int power, int chunk_length)
 {
-	// coffs_scratch_len is supposed to be equal to 3 * next2pow(power * num->length - (power - 1))
 	sprintf(result_buffer->list, "%d", 1);
 	result_buffer->length = 1;
 	charArray *working_num = scratch_space;
 	sprintf(working_num->list, "%s", num->list);
 	working_num->length = num->length;
-	//	printf("working_num->list = %s, working_num->length = %d\n", working_num->list, working_num->length); //debugging
+	if (DEBUG >= 1 && DEBUG_OP == DBG_OP_POW) printf("  \033[36m➤\033[0m \033[90mworking_num:\033[0m \033[33m%s\033[0m (len=%d)\n", working_num->list, working_num->length);
 	while (power > 0)
 	{
 		if (power % 2 == 0)
 		{
 			int chunks_length = (working_num->length % chunk_length == 0) ? working_num->length / chunk_length : working_num->length / chunk_length + 1;
 			int pre_n = next2pow(2 * chunks_length - 1);
-			//			printf("pre_n = %d\n", pre_n); //debugging
+			if (DEBUG >= 1 && DEBUG_OP == DBG_OP_POW) printf("  \033[36m➤\033[0m \033[90mpre_n (even exp):\033[0m \033[33m%d\033[0m\n", pre_n);
 			mult_fast_base(working_num, coffs_scratch_space, coffs_scratch_len, working_num, working_num, pre_n, chunk_length);
 			power /= 2;
 		}
@@ -610,7 +438,7 @@ void power_base_fast(charArray *result_buffer, charArray *scratch_space, unsigne
 			int chunks_len1 = (result_buffer->length % chunk_length == 0) ? result_buffer->length / chunk_length : result_buffer->length / chunk_length + 1;
 			int chunks_len2 = (working_num->length % chunk_length == 0) ? working_num->length / chunk_length : working_num->length / chunk_length + 1;
 			int pre_n = next2pow(chunks_len1 + chunks_len2 - 1);
-			//			printf("pre_n = %d\n", pre_n); //debugging
+			if (DEBUG >= 1 && DEBUG_OP == DBG_OP_POW) printf("  \033[36m➤\033[0m \033[90mpre_n (odd exp):\033[0m \033[33m%d\033[0m\n", pre_n);
 			mult_fast_base(result_buffer, coffs_scratch_space, coffs_scratch_len, result_buffer, working_num, pre_n, chunk_length);
 			power -= 1;
 		}
@@ -763,7 +591,7 @@ strArray *get_powered_primes_fast_base(intArray *primes, intArray *primesExps, i
 		sprintf(prime->list, "%d", primes->list[i]);
 		prime->length = prime_size;
 
-		// printf("raising %s to power %d\n", prime->list, primesExps->list[i]); //debugging
+		if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) printf("  \033[36m➤\033[0m \033[90mraising to power: \033[0m\033[33m%s\033[0m ^ \033[33m%d\033[0m\n", prime->list, primesExps->list[i]);
 		power_base_fast(powered_prime, scratch_buffer, coffs_scratch_space, coffs_scratch_len, prime, primesExps->list[i], chunk_length);
 		poweredPrimes->list[i] = powered_prime;
 		prefix_digits_sum[i + 1] = prefix_digits_sum[i] + poweredPrimes->list[i]->length;
@@ -785,22 +613,27 @@ void mulpowprimes_fast_base(charArray *result_buffer, unsigned long long *coffs_
 		sprintf(result_buffer->list, "%s", powered_primes->list[start]->list);
 		result_buffer->length = powered_primes->list[start]->length;
 
-		// printf("copying %s\n", powered_primes->list[start]->list); //debugging
-		// printf("copied result: %s\n", result_buffer->list); //debugging
-		// printf("=======================================\n"); //debugging
+		if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+			print_truncated_str("copying", powered_primes->list[start], 20);
+			print_truncated_str("copied result", result_buffer, 20);
+		}
 	}
 	else if (len == 2)
 	{
 		charArray *num1 = powered_primes->list[start];
 		charArray *num2 = powered_primes->list[start + 1];
-		// printf("multiplying: %s by %s\n", num1->list, num2->list); //debugging
+		if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+			print_truncated_str("multiplying (left)", num1, 20);
+			print_truncated_str("multiplying (right)", num2, 20);
+		}
 
 		int chunks_len1 = (num1->length % chunk_length == 0) ? num1->length / chunk_length : num1->length / chunk_length + 1;
 		int chunks_len2 = (num2->length % chunk_length == 0) ? num2->length / chunk_length : num2->length / chunk_length + 1;
 		int pre_n = next2pow(chunks_len1 + chunks_len2 - 1);
 		mult_fast_base(result_buffer, coffs_buffer, coffs_buffer_len, num1, num2, pre_n, chunk_length);
-		// printf("result of multiplication: %s\n", result_buffer->list); //debugging
-		// printf("=======================================\n"); //debugging
+		if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+			print_truncated_str("result of mult", result_buffer, 20);
+		}
 	}
 	else
 	{
@@ -853,21 +686,23 @@ charArray *factorial_base_fast(int n, int chunk_length)
 {
 	intArray *primes = sieve_primes(n);
 
-	// print_int_array("primes", primes->list, primes->length); //debugging
-
 	intArray *primes_exps = get_primes_exps(primes, n);
-
-	// print_int_array("primes' powers", primes_exps->list, primes_exps->length); //debugging
 
 	int prefix_digits_sum[primes->length + 1];
 	prefix_digits_sum[0] = 0;
 
+	DBG_FACT_HEADER("RAISING PRIMES TO EXPONENTS");
 	strArray *powered_primes = get_powered_primes_fast_base(primes, primes_exps, prefix_digits_sum, chunk_length);
 
-	// for (int i = 0; i < powered_primes->length; i++) { //debugging
-	// printf("%d ^ %d = %s\n", primes->list[i], primes_exps->list[i], powered_primes->list[i]->list); //debugging
-	// } //debugging
-	// print_int_array("prefix_digits_sum", prefix_digits_sum, primes->length + 1); //debugging
+	if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+		DBG_FACT_HEADER("PRIME POWER RESULTS");
+		for (int i = 0; i < powered_primes->length; i++) {
+			char prefix[64];
+			sprintf(prefix, "%d ^ %d", primes->list[i], primes_exps->list[i]);
+			print_truncated_str(prefix, powered_primes->list[i], 30);
+		}
+		DBG_FACT_HEADER("DIVIDE AND CONQUER TREE");
+	}
 
 	freeintArray(primes);
 	freeintArray(primes_exps);
@@ -889,55 +724,6 @@ charArray *factorial_base_fast(int n, int chunk_length)
 	return factorial_result;
 }
 
-charArray *getStr(const char *str)
-{
-	int len = strlen(str);
-	char *result = (char *)malloc((len + 1) * sizeof(char));
-	if (!result)
-	{
-		printf("Memory allocation failed at line: %d\n", __LINE__);
-		exit(EXIT_FAILURE);
-	}
-	result[len] = '\0';
-	for (int i = 0; i < len; i++)
-	{
-		result[i] = str[i];
-	}
-	charArray *resultArr = (charArray *)malloc(sizeof(charArray));
-	if (!resultArr)
-	{
-		printf("Memory allocation failed at line: %d\n", __LINE__);
-		exit(EXIT_FAILURE);
-	}
-	resultArr->list = result;
-	resultArr->length = len;
-	return resultArr;
-}
-
-void print_int_array(char *name, int *array, int len)
-{
-	printf("%s = [", name);
-	for (int i = 0; i < len; i++)
-	{
-		printf("%d", array[i]);
-		if (i < len - 1)
-			printf(", ");
-	}
-	printf("]\n");
-}
-
-void print_longlong_array(char *name, unsigned long long *array, int len)
-{
-	printf("%s = [", name);
-	for (int i = 0; i < len; i++)
-	{
-		printf("%llu", array[i]);
-		if (i < len - 1)
-			printf(", ");
-	}
-	printf("]\n");
-}
-
 void remlzeros(charArray *num)
 {
 
@@ -948,7 +734,7 @@ void remlzeros(charArray *num)
 	int i = zero_index;
 	while (num->list[i] != '\0')
 	{
-		num[i - zero_index] = num[i];
+		num->list[i - zero_index] = num->list[i];
 		i++;
 	}
 	num->list[i - zero_index] = '\0';

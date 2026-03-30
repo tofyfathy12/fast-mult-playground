@@ -39,7 +39,6 @@ int main(int argc, char *argv[]) {
     coffs_data data2 = {coffs2, num2, n, chunk_length};
 
     pthread_t thread1, thread2;
-    // void get_coffs_NTT_fast_base(unsigned long long* coffs_buffer, charArray* num, int n, int chunk_length);
 
     pthread_create(&thread1, NULL, get_coffs_NTT_fast_base, &data1);
     pthread_create(&thread2, NULL, get_coffs_NTT_fast_base, &data2);
@@ -65,7 +64,6 @@ unsigned long long next2pow(unsigned long long deg) {
 	unsigned long long result = (unsigned long long)pow(2, power);
 	return result;
 }
-// unsigned long long* coffs_buffer, charArray* num, int n, int chunk_length
 void* get_coffs_NTT_fast_base(void* data) {
     coffs_data* the_data = (coffs_data*) data;
     unsigned long long* coffs_buffer = the_data->coffs_buffer;

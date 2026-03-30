@@ -73,19 +73,19 @@ A collection of fast multiplication algorithms designed for **arbitrary-precisio
 fast-mult-playground/
 │
 ├── fft/                        # Fast Fourier Transform
-│   ├── FFT_multiplication_v1.c     # Recursive FFT with complex roots of unity
-│   └── FFT_multiplication_v2.c     # Improved FFT variant
+│   ├── fft_v1.c                    # Recursive FFT with complex roots of unity
+│   └── fft_v2.c                    # Improved FFT variant
 │
 ├── ntt/                        # Number Theoretic Transform
-│   ├── NTT_multiplication_v1.c     # Initial NTT implementation
-│   ├── NTT_multiplication_v2.c     # Optimized coefficient handling
-│   ├── NTT_multiplication_v3.c     # Refactored transforms
-│   ├── NTT_multiplication_v4.c     # 128-bit modular arithmetic
-│   └── NTT_multiplication_v5.c     # ★ Latest — fast-base chunking + factorial
+│   ├── ntt_v1.c                    # Initial NTT implementation
+│   ├── ntt_v2.c                    # Optimized coefficient handling
+│   ├── ntt_v3.c                    # Refactored transforms
+│   ├── ntt_v4.c                    # 128-bit modular arithmetic
+│   └── ntt_v5.c                    # ★ Latest — fast-base chunking + factorial
 │
 ├── karatsuba/                  # Karatsuba Algorithm
-│   ├── karatsuba_multiplication_v1.c   # Initial Karatsuba implementation
-│   └── Karatsuba_multiplication.c      # ★ Optimized with in-place scratch buffers
+│   ├── karatsuba_v1.c              # Initial Karatsuba implementation
+│   └── karatsuba_v0.c              # ★ Optimized with in-place scratch buffers
 │
 ├── threading/                  # Multithreading Utilities
 │   ├── thread_pool.c               # Thread pool implementation
@@ -93,11 +93,13 @@ fast-mult-playground/
 │   └── pthread_cheatsheet.pdf      # pthreads reference (LaTeX source included)
 │
 ├── utils/                      # Shared Data Structures
+│   ├── utils.h                     # C Library macros, ANSI debuggers, and truncators
+│   ├── utils.c                     # Custom charArray memory structs and helpers
 │   └── Queue.h                     # Queue implementation
 │
 ├── scripts/                    # Helper Scripts
 │   ├── prime_generator.py          # NTT-friendly prime finder (Miller-Rabin)
-│   └── btngan.py                   # Utility script
+│   └── test_algorithms.py          # Automated arbitrary-precision validation suite
 │
 └── data/                       # Output & Configuration
     ├── factorial_result.txt        # Precomputed 100000! result (456,574 digits)
@@ -164,38 +166,17 @@ This approach is dramatically faster because it minimizes the number of large-nu
 
 ### Build & Run
 
-<details open>
-<summary><b>⚡ NTT v5</b> (recommended)</summary>
+### Build & Run
+
+Using the provided `Makefile` is the recommended way to securely build and link all algorithms:
 
 ```bash
-gcc -O2 -o ntt_v5 ntt/NTT_multiplication_v5.c -lpthread -lm
-./ntt_v5
+make clean
+make all
 ```
 
-</details>
-
-<details>
-<summary><b>🧮 Karatsuba</b></summary>
-
-```bash
-gcc -O2 -o karatsuba karatsuba/Karatsuba_multiplication.c -lm
-./karatsuba
-```
-
-</details>
-
-<details>
-<summary><b>🌊 FFT</b></summary>
-
-```bash
-gcc -O2 -o fft fft/FFT_multiplication_v1.c -lm
-./fft
-```
-
-</details>
-
-> [!NOTE]
-> <kbd>-lm</kbd> links the math library, <kbd>-lpthread</kbd> links the POSIX threads library, and <kbd>-O2</kbd> enables compiler optimizations.
+This statically links the math and internal `utils.c` libraries, compiling them natively into their respective binaries (e.g., `./ntt/ntt_v5.exe`, `./fft/fft_v2.exe`) directly optimized with `-O3` flags. > [!NOTE]
+> Ensure <kbd>make</kbd> and <kbd>gcc</kbd> are installed and integrated into your system's path.
 
 ### Command-Line Usage
 
@@ -215,28 +196,35 @@ All programs accept command-line arguments for specifying inputs and toggling de
 ./program -p <base> <exponent> -d    # with debug output
 ```
 
-**Factorial** (where supported):
+**Factorial:**
 
 ```bash
 ./program -f <N>         # compute N!
 ./program -f <N> -d      # with debug output
 ```
 
+**Testing Mode:**
+
+To validate your implementations against Python natively:
+```bash
+python scripts/test_algorithms.py
+```
+
 Running with **no arguments** uses built-in default values.
 
 ### Feature Support
 
-| Program | Multiply | Power (`-p`) | Factorial (`-f`) | Debug (`-d`) |
+| Program | Multiply | Power (`-p`) | Factorial (`-f`) | Debug (`-d`, `-d1`, `-d2`) |
 |:---|:---:|:---:|:---:|:---:|
-| `fft/FFT_multiplication_v1.c` | ✅ | ✅ | — | ✅ |
-| `fft/FFT_multiplication_v2.c` | ✅ | ✅ | — | ✅ |
-| `ntt/NTT_multiplication_v1.c` | ✅ | ✅ | ✅ | ✅ |
-| `ntt/NTT_multiplication_v2.c` | ✅ | ✅ | ✅ | ✅ |
-| `ntt/NTT_multiplication_v3.c` | ✅ | ✅ | ✅ | ✅ |
-| `ntt/NTT_multiplication_v4.c` | ✅ | ✅ | ✅ | ✅ |
-| `ntt/NTT_multiplication_v5.c` | ✅ | ✅ | ✅ | ✅ |
-| `karatsuba/karatsuba_multiplication_v1.c` | ✅ | ✅ | — | ✅ |
-| `karatsuba/Karatsuba_multiplication.c` | ✅ | — | ✅ | ✅ |
+| `fft/fft_v1.c` | ✅ | ✅ | — | ✅ |
+| `fft/fft_v2.c` | ✅ | ✅ | — | ✅ |
+| `ntt/ntt_v1.c` | ✅ | ✅ | ✅ | ✅ |
+| `ntt/ntt_v2.c` | ✅ | ✅ | ✅ | ✅ |
+| `ntt/ntt_v3.c` | ✅ | ✅ | ✅ | ✅ |
+| `ntt/ntt_v4.c` | ✅ | ✅ | ✅ | ✅ |
+| `ntt/ntt_v5.c` | ✅ | ✅ | ✅ | ✅ |
+| `karatsuba/karatsuba_v1.c` | ✅ | ✅ | — | ✅ |
+| `karatsuba/karatsuba_v0.c` | ✅ | — | ✅ | ✅ |
 
 
 ### Finding NTT Primes

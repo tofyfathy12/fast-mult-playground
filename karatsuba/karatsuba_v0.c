@@ -4,37 +4,12 @@
 #include <math.h>
 #include <stdbool.h>
 #include <time.h>
+#include "../utils/utils.h"
 
-int DEBUG = 0;
-
-#define DBG_HEADER(msg) do { if (DEBUG) printf("\n\033[1;36m══════ %s ══════\033[0m\n", msg); } while(0)
-#define DBG_VAL(label, fmt, ...) do { if (DEBUG) printf("  \033[33m%-22s\033[0m " fmt "\n", label, __VA_ARGS__); } while(0)
-#define DBG_SEP() do { if (DEBUG) printf("\033[90m  ────────────────────────────────\033[0m\n"); } while(0)
-clock_t _dbg_t;
-#define DBG_TIME_START() _dbg_t = clock()
-#define DBG_TIME_END(label) do { if (DEBUG) { double _s = (double)(clock() - _dbg_t) / CLOCKS_PER_SEC; printf("  \033[32m%-22s\033[0m %.6f s\n", label, _s); } } while(0)
-
-const size_t MAX_PRACTICAL_DIGITS = 1000000000UL; // 1 billion digits ≈ 1GB just for result
-const size_t MAX_MEMORY_GB = 8; // Practical limit: 8GB
+const size_t MAX_PRACTICAL_DIGITS = 1000000000UL;
+const size_t MAX_MEMORY_GB = 8;
 const size_t MAX_SCRATCH_BYTES = MAX_MEMORY_GB * 1024UL * 1024UL * 1024UL;
 
-
-typedef struct arr {
-	int* list;
-	int length;
-} intArray;
-
-typedef struct arr2 {
-	char* list;
-	int length;
-} charArray;
-
-typedef struct arr3 {
-	charArray** list;
-	int length;
-} strArray;
-
-charArray* create_long_num(int len, char digit);
 size_t compute_result_space_factorial(int start, int end, int* prefix_digits_sum);
 charArray* factorial(int n);
 void mulpowprimes_fast(char* result_buffer, char* scratch_buffer, strArray* powered_primes, int start, int end, int* prefix_digits_sum);
@@ -47,7 +22,7 @@ void karatsuba_mult_fast(char* result_buffer, char* scratch_buffer, const char* 
 void advanced_subtract_fast(char* result_buffer, char* resultNeg_buffer, const char* num1, const char* num2, int len1, int len2);
 void advanced_add_fast(char* result_buffer, const char* num1, const char* num2, int len1, int len2);
 charArray* add(charArray* num1, charArray* num2, int start, int end);
-charArray* getStr(const char * str);
+
 void reverse(charArray* str);
 charArray* subtract(charArray* num1, charArray* num2);
 void pad_inplace(char* num, int len, int req_len);
@@ -55,22 +30,21 @@ charArray* pad(charArray *num, int req_len);
 charArray* append_zeros(charArray* num, int zeros_num);
 char* substring(const char* str, int start, int end);
 charArray* int_to_string(int num);
-void freeintArray(intArray* arr);
-void freecharArray(charArray* arr);
-void freestrArray(strArray* arr);
+
 char* remove_leading_zeros(char* num, int len);
 void remlzeros(char* num, int* len);
 void print_char_array(char* str, int len);
 size_t compute_scratch_space(int n);
-void print_int_array(char* name, int* array, int len);
 
 int main(int argc, char *argv[])
 {
 	const char *s1 = NULL, *s2 = NULL;
 	int fact_n = 0;
+	DEBUG_OP = DBG_OP_MULT;
 	for (int i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-d") == 0) { DEBUG = 1; continue; }
-		if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) { fact_n = atoi(argv[++i]); continue; }
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "-d1") == 0) { DEBUG = 1; continue; }
+		if (strcmp(argv[i], "-d2") == 0) { DEBUG = 2; continue; }
+		if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) { fact_n = atoi(argv[++i]); DEBUG_OP = DBG_OP_FACT; continue; }
 		if (!s1) s1 = argv[i]; else s2 = argv[i];
 	}
 	if (fact_n > 0) {
@@ -104,18 +78,6 @@ int main(int argc, char *argv[])
 	}
 }
 
-charArray* create_long_num(int len, char digit) {
-    char* num = (char*)malloc(len + 1);
-	if (!num) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-    if (num == NULL) exit(1);
-    memset(num, digit, len);
-    num[len] = '\0';
-	charArray* numArray = (charArray*)malloc(sizeof(charArray));
-	numArray->list = num;
-	numArray->length = len;
-    return numArray;
-}
-
 size_t compute_result_space_factorial(int start, int end, int* prefix_digits_sum) {
 	int len = end - start;
 	if (len == 1) {
@@ -137,33 +99,27 @@ size_t compute_result_space_factorial(int start, int end, int* prefix_digits_sum
 
 charArray* factorial(int n) {
 	intArray* primesArr = sieve_primes(n);
-	// print_int_array("primesArr", primesArr->list, primesArr->length); //debugging
 
 	intArray* primesExps = get_primes_exps(primesArr, n);
-	// print_int_array("primesExps", primesExps->list, primesExps->length); //debugging
 
 	int* prefix_digits_sum = malloc((primesArr->length + 1) * sizeof(int));
 	prefix_digits_sum[0] = 0;
 	strArray* poweredPrimes = get_powered_primes_fast(primesArr, primesExps, prefix_digits_sum);
 	freeintArray(primesArr);
 	freeintArray(primesExps);
-	// print_int_array("prefix_digits_sum", prefix_digits_sum, poweredPrimes->length + 1); //debugging
 
 	size_t factorial_result_size = compute_result_space_factorial(0, poweredPrimes->length, prefix_digits_sum);
-	// printf("estimated result size of %d! = %zu\n", n, factorial_result_size); //debugging
+	if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+		DBG_FACT_HEADER("DIVIDE AND CONQUER TREE");
+		printf("  \033[36m➤\033[0m \033[90mestimated result size:\033[0m \033[33m%zu bytes\033[0m\n", factorial_result_size);
+	}
 	size_t factorial_scratch_size = compute_scratch_space(factorial_result_size);
-	// printf("estimated scratch space for calculating %d! = %zu\n", n, factorial_scratch_size); //debugging
+	if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) printf("  \033[36m➤\033[0m \033[90mestimated scratch space:\033[0m \033[33m%zu bytes\033[0m\n", factorial_scratch_size);
 	char* factorial_result_buffer = (char*)malloc(factorial_result_size*sizeof(char));
 	char* factorial_scratch_buffer = (char*)malloc(factorial_scratch_size*sizeof(char));
 
-	// clock_t start, end; //debugging
-    // double cpu_time_used; //debugging
-	// start = clock(); //debugging
 	mulpowprimes_fast(factorial_result_buffer, factorial_scratch_buffer, poweredPrimes, 0, poweredPrimes->length, prefix_digits_sum);
-	// end   = clock(); //debugging
-	// cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC; //debugging
-	// printf("CPU time used: %f seconds\n", cpu_time_used); //debugging
-    
+
 	free(prefix_digits_sum);
 	freestrArray(poweredPrimes);
 	charArray* result = (charArray*)malloc(sizeof(charArray));
@@ -180,9 +136,11 @@ void mulpowprimes_fast(char* result_buffer, char* scratch_buffer, strArray* powe
 		for (int i = 0; i <= result_length; i++) {
 			result_buffer[i] = powered_primes->list[start]->list[i];
 		}
-		// printf("copying %s\n", powered_primes->list[start]->list); //debugging
-		// printf("copied result: %s\n", result_buffer); //debugging
-		// printf("=======================================\n"); //debugging
+		if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+			print_truncated_str("copying", powered_primes->list[start], 20);
+			charArray dummy = {result_buffer, strlen(result_buffer)};
+			print_truncated_str("copied result", &dummy, 20);
+		}
 	}
 	else if (len == 2) {
 		charArray* num1 = powered_primes->list[start];
@@ -213,10 +171,15 @@ void mulpowprimes_fast(char* result_buffer, char* scratch_buffer, strArray* powe
 			sprintf(num1_padded, "%s", num1->list);
 			sprintf(num2_padded, "%s", num2->list);
 		}
-		// printf("multiplying: %s by %s\n", num1->list, num2->list); //debugging
+		if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+			print_truncated_str("multiplying (left)", num1, 20);
+			print_truncated_str("multiplying (right)", num2, 20);
+		}
 		karatsuba_mult_fast(result_buffer, scratch_buffer, num1_padded, num2_padded, len);
-		// printf("result of multiplication: %s\n", result_buffer); //debugging
-		// printf("=======================================\n"); //debugging
+		if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+			charArray dummy = {result_buffer, strlen(result_buffer)};
+			print_truncated_str("result of mult", &dummy, 20);
+		}
 	}
 	else {
 		int mid = start + (end - start) / 2;
@@ -368,10 +331,6 @@ void power_fast(char* result_buffer, char* scratch_space, char* num, int len, in
 			else {
 				working_num_length *= 2;
 			}
-			// printf("current working_num = %s\n", working_num); //debugging
-			// printf("current length of working_num = %d\n", working_num_length); //debugging
-			// printf("current result = %s\n", result_buffer); //debugging
-			// printf("current result length = %d\n", result_length); //debugging
 			exp /= 2;
 		}
 		else {
@@ -386,10 +345,6 @@ void power_fast(char* result_buffer, char* scratch_space, char* num, int len, in
 			else {
 				result_length = new_len + 1;
 			}
-			// printf("current working_num = %s\n", working_num); //debugging
-			// printf("current length of working_num = %d\n", working_num_length); //debugging
-			// printf("current result = %s\n", result_buffer); //debugging
-			// printf("current result length = %d\n", result_length); //debugging
 			exp -= 1;
 		}
 	}
@@ -424,9 +379,6 @@ charArray* mult_karatsuba(charArray* num1, charArray* num2) {
 		sprintf(num2_padded, "%s", num2->list);
 	}
 
-	// printf("num1_padded = %s\n", num1_padded);
-	// printf("num2_padded = %s\n", num2_padded);
-
 	int scratch_size = compute_scratch_space(len);
 	char* scratch_space = (char*)malloc(scratch_size*sizeof(char));
 	char* result_buffer = (char*)malloc((2*len + 2)*sizeof(char));
@@ -446,23 +398,12 @@ void karatsuba_mult_fast(char* result_buffer,
 						const char* num2,
 						int len) {
 
-
 	while (len > 1 && num1[0] == '0' && num2[0] == '0') {
 		num1++;
 		num2++;
 		len--;
 	}
 
-	// char* substr1 = substring(num1, 0, len);
-	// char* substr2 = substring(num2, 0, len);
-	// printf("multiplying: %s by %s\n", substr1, substr2); //debugging
-	// free(substr1);
-	// free(substr2);
-
-	// if (len == 1) {
-	// 	int resultNum = (num1[0] - '0') * (num2[0] - '0');
-	// 		sprintf(result_buffer, "%d", resultNum);
-	// }
 	if (len <= 9) {
 		long long N1 = 0;
 		long long N2 = 0;
@@ -471,7 +412,6 @@ void karatsuba_mult_fast(char* result_buffer,
 			N2 = (N2 * 10) + (num2[i] - '0');
 		}
 		long long resultNum = N1 * N2;
-		// printf("current resultNum = %lld\n", resultNum); //debugging
 		sprintf(result_buffer, "%lld", resultNum);
 	}
 	else {
@@ -483,7 +423,6 @@ void karatsuba_mult_fast(char* result_buffer,
 		char* z2 = z1 + (2*low_len + 1);
 		char* added1 = z2 + ((2*low_len + 2) + 1);
 		char* added2 = added1 + ((low_len + 1) + 1);
-
 
 		karatsuba_mult_fast(z0, added1, num1, num2, high_len);
 		karatsuba_mult_fast(z1, added1, num1 + high_len, num2 + high_len, low_len);
@@ -569,29 +508,9 @@ void advanced_subtract_fast(char* result_buffer, char* resultNeg_buffer, const c
 					resultNeg_buffer[i + 1] = (9 - dif) + '0';
 			}
 		}
-		if (borrow == 1) {
-			// int zero_index = 1;
-			// while (zero_index < big && resultNeg_buffer[zero_index] == '0') {
-			// 	zero_index++;
-			// }
-			// for (int i = zero_index; i < big + 2; i++) {
-			// 	resultNeg_buffer[i - zero_index + 1] = resultNeg_buffer[i];
-			// }
-			// resultNeg_buffer = (char*)realloc(resultNeg_buffer, (big - zero_index + 2)*sizeof(char));
-			if (resultNeg_buffer != NULL)
-				resultNeg_buffer[0] = '-';
+		if (borrow == 1 && resultNeg_buffer != NULL) {
+			resultNeg_buffer[0] = '-';
 		}
-		// else {
-		// 	resultNeg_buffer[0] = '0';
-		// 	int zero_index = 0;
-		// 	while (zero_index < big - 1 && result_buffer[zero_index] == '0') {
-		// 		zero_index++;
-		// 	}
-		// 	for (int i = zero_index; i < big + 1; i++) {
-		// 		result_buffer[i - zero_index] = result_buffer[i];
-		// 	}
-		// 	result_buffer = (char*)realloc(result_buffer, (big - zero_index + 1)*sizeof(char));
-		// }
 	}
 	else {
 		int dif = abs(len1 - len2);
@@ -625,14 +544,6 @@ void advanced_subtract_fast(char* result_buffer, char* resultNeg_buffer, const c
 				result_buffer[loop2_i] = diff + '0';
 				loop2_i--;
 			}
-			// int zero_index = 0;
-			// while (zero_index < big - 1 && result_buffer[zero_index] == '0') {
-			// 	zero_index++;
-			// }
-			// for (int i = zero_index; i < big + 1; i++) {
-			// 	result_buffer[i - zero_index] = result_buffer[i];
-			// }
-			// result_buffer = (char*)realloc(result_buffer, (big - zero_index + 1)*sizeof(char));
 		}
 		else {
 			int loop1_i = len1 - 2;
@@ -662,14 +573,6 @@ void advanced_subtract_fast(char* result_buffer, char* resultNeg_buffer, const c
 				resultNeg_buffer[loop2_i + 1] = (9 - diff) + '0';
 				loop2_i--;
 			}
-			// int zero_index = 1;
-			// while (zero_index < big && resultNeg_buffer[zero_index] == '0') {
-			// 	zero_index++;
-			// }
-			// for (int i = zero_index; i < big + 2; i++) {
-			// 	resultNeg_buffer[i - zero_index + 1] = resultNeg_buffer[i];
-			// }
-			// resultNeg_buffer = (char*)realloc(resultNeg_buffer, (big - zero_index + 2)*sizeof(char));
 			resultNeg_buffer[0] = '-';
 		}
 	}
@@ -759,21 +662,6 @@ charArray* add(charArray* num1, charArray* num2, int start, int end) {
 	if (!resultArr) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
 	resultArr->list = result;
 	resultArr->length = len - zero_index + 1;
-	return resultArr;
-}
-
-charArray* getStr(const char * str) {
-	int len = strlen(str);
-	char *result = (char*)malloc((len + 1)*sizeof(char));
-	if (!result) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-	result[len] = '\0';
-	for (int i = 0; i < len; i++) {
-		result[i] = str[i];
-	}
-	charArray* resultArr = (charArray*)malloc(sizeof(charArray));
-	if (!resultArr) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
-	resultArr->list = result;
-	resultArr->length = len;
 	return resultArr;
 }
 
@@ -902,24 +790,6 @@ charArray* int_to_string(int num) {
 	return resultArr;
 }
 
-void freeintArray(intArray* arr) {
-	free(arr->list);
-	free(arr);
-}
-
-void freecharArray(charArray* arr) {
-	free(arr->list);
-	free(arr);
-}
-
-void freestrArray(strArray* arr) {
-	for (int i = 0; i < arr->length; i++) {
-		freecharArray(arr->list[i]);
-	}
-	free(arr->list);
-	free(arr);
-}
-
 char* remove_leading_zeros(char* num, int len) {
 	int zero_index;
 	bool negative = false;
@@ -979,12 +849,3 @@ size_t compute_scratch_space(int n) {
     return local_space + recursive_space;
 }
 
-void print_int_array(char* name, int* array, int len) {
-	printf("%s = [", name);
-	for (int i = 0; i < len; i++) {
-		printf("%d", array[i]);
-		if (i < len - 1)
-			printf(", ");
-	}
-	printf("]\n");
-}

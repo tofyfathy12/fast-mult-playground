@@ -1,0 +1,539 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
+#include <time.h>
+#include "../utils/utils.h"
+
+#define PRIME 850403524609
+#define PRIM_ROOT_G 13
+#define N 2147483648
+
+void get_coffs_NTT_fast(unsigned long long* result_buffer, charArray* num, int n);
+void nthRoots_NTT_fast(unsigned long long* result_buffer, int n, unsigned long long g, unsigned long long p);
+void nthRoots_NTT_inv(unsigned long long* result_buffer, int n, unsigned long long g_inv, unsigned long long p);
+void eval_NTT(unsigned long long* Xs, unsigned long long* coffs, int n, unsigned long long p);
+void pointwise_mult_NTT(unsigned long long* result_buffer, unsigned long long* eval1, unsigned long long* eval2, int n, unsigned long long p);
+void eval_INTT(unsigned long long* Xs_inv, unsigned long long* NTT_result, int n, unsigned long long p);
+void get_final_result_NTT_fast(charArray* result_buffer, unsigned long long* INTT_result, int n, int len1, int len2);
+charArray* mult_NTT_fast(charArray* num1, charArray* num2);
+void mult_fast(charArray* result_buffer, unsigned long long* coffs_buffer, int coffs_buffer_len, charArray* num1, charArray* num2, int pre_n);
+charArray* mypow_NTT_fast(charArray* num, int power);
+void power_fast(charArray* result_buffer, charArray* scratch_space, unsigned long long* coffs_scratch_space, int coffs_scratch_len, charArray* num, int power);
+intArray* sieve_primes(int n);
+intArray* get_primes_exps(intArray* primes, int n);
+strArray* get_powered_primes_fast(intArray* primes, intArray* primesExps, int* prefix_digits_sum);
+void mulpowprimes_fast(charArray* result_buffer, unsigned long long* coffs_buffer, int coffs_buffer_len, strArray* powered_primes, int start, int end, int* prefix_digits_sum);
+size_t compute_result_space_factorial(int start, int end, int* prefix_digits_sum);
+charArray* factorial(int n);
+
+int main(int argc, char *argv[]) {
+	const char *s1 = NULL, *s2 = NULL, *pow_base = NULL;
+	int fact_n = 0, pow_exp = 0;
+	DEBUG_OP = DBG_OP_MULT;
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "-d1") == 0) { DEBUG = 1; continue; }
+		if (strcmp(argv[i], "-d2") == 0) { DEBUG = 2; continue; }
+		if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) { fact_n = atoi(argv[++i]); DEBUG_OP = DBG_OP_FACT; continue; }
+		if (strcmp(argv[i], "-p") == 0 && i + 2 < argc) { pow_base = argv[++i]; pow_exp = atoi(argv[++i]); DEBUG_OP = DBG_OP_POW; continue; }
+		if (!s1) s1 = argv[i]; else s2 = argv[i];
+	}
+	if (fact_n > 0) {
+		clock_t start = clock();
+		charArray* n_fact = factorial(fact_n);
+		clock_t end = clock();
+		double secs = (double)(end - start) / CLOCKS_PER_SEC;
+		printf("%d! = %s\n", fact_n, n_fact->list);
+		printf("It took time = %.3lf seconds to calculate %d!\n", secs, fact_n);
+		freecharArray(n_fact);
+	} else if (pow_base) {
+		charArray* num = getStr(pow_base);
+		charArray* pow_result = mypow_NTT_fast(num, pow_exp);
+		printf("%s ^ %d = %s\n", num->list, pow_exp, pow_result->list);
+		freecharArray(num); freecharArray(pow_result);
+	} else {
+		if (!s1) { s1 = "1234554321"; s2 = "5432112345"; }
+		if (!s2) { printf("Usage: %s <num1> <num2> [-d] | -f <N> | -p <base> <exp> [-d]\n", argv[0]); return 1; }
+		charArray* num1 = getStr(s1);
+		charArray* num2 = getStr(s2);
+		charArray* product = mult_NTT_fast(num1, num2);
+		printf("%s * %s = %s\n", num1->list, num2->list, product->list);
+		freecharArray(num1); freecharArray(num2); freecharArray(product);
+	}
+}
+
+void get_coffs_NTT_fast(unsigned long long* result_buffer, charArray* num, int n) {
+	int len = num->length;
+	int index = 0;
+	for (int i = len - 1; i >= 0; i--) {
+		result_buffer[index] = num->list[i] - '0';
+		index++;
+	}
+	while (index < n) {
+		result_buffer[index] = 0;
+		index++;
+	}
+}
+
+void nthRoots_NTT_fast(unsigned long long* result_buffer, int n, unsigned long long g, unsigned long long p) {
+	for (int i = 0; i < n; i++) {
+		result_buffer[i] = modpow(g, i, p);
+	}
+}
+
+void nthRoots_NTT_inv(unsigned long long* result_buffer, int n, unsigned long long g_inv, unsigned long long p) {
+	for (int i = 0; i < n; i++) {
+		result_buffer[i] = modpow(g_inv, i, p);
+	}
+}
+
+void eval_NTT(unsigned long long* Xs, unsigned long long* coffs, int n, unsigned long long p) {
+	int bits_num = (int)log2(n);
+	for (int i = 0; i < n; i++) {
+		int i_rev = bitrev(i, bits_num);
+		if (i < i_rev) {
+			swap_longlong(coffs + i, coffs + i_rev);
+		}
+	}
+
+	if (DEBUG >= 2) print_longlong_array("coffs_scrambled", coffs, n);
+
+	for (int size = 2; size <= n; size *= 2) {
+		for (int i = 0; i < n; i+= size) {
+			for (int j = i; j < i + size/2; j++) {
+				unsigned long long even = coffs[j];
+				__uint128_t product = (__uint128_t) Xs[(j - i) * (n / size)] * (__uint128_t)coffs[j + size/2];
+				unsigned long long twiddle_factor = product % p;
+				if (even >= p - twiddle_factor) {
+					coffs[j] = even + twiddle_factor - p;
+				}
+				else {
+					coffs[j] = 	even + twiddle_factor;
+				}
+				if (even >= twiddle_factor) {
+					coffs[j + size/2] = (even - twiddle_factor) % p;
+				}
+				else {
+					__uint128_t temp = (__uint128_t) even + p - twiddle_factor;
+					coffs[j + size/2] = temp % p;
+				}
+			}
+		}
+	}
+}
+
+void pointwise_mult_NTT(unsigned long long* result_buffer, unsigned long long* eval1, unsigned long long* eval2, int n, unsigned long long p) {
+	for (int i = 0; i < n; i++) {
+		__uint128_t product = (__uint128_t)eval1[i] * (__uint128_t)eval2[i];
+		result_buffer[i] = product % p;
+	}
+}
+
+void eval_INTT(unsigned long long* Xs_inv, unsigned long long* NTT_result, int n, unsigned long long p) {
+	int bits_num = (int)log2(n);
+	for (int i = 0; i < n; i++) {
+		int i_rev = bitrev(i, bits_num);
+		if (i < i_rev) {
+			swap_longlong(NTT_result + i, NTT_result + i_rev);
+		}
+	}
+
+	if (DEBUG >= 2) print_longlong_array("NTT_result_scrambled", NTT_result, n);
+
+	for (int size = 2; size <= n; size *= 2) {
+		for (int i = 0; i < n; i+= size) {
+			for (int j = i; j < i + size/2; j++) {
+				unsigned long long even = NTT_result[j];
+				__uint128_t product = (__uint128_t)Xs_inv[(j - i) * (n / size)] * (__uint128_t)NTT_result[j + size/2];
+				unsigned long long twiddle_factor = product % p;
+				if (even >= p - twiddle_factor) {
+					NTT_result[j] = even + twiddle_factor - p;
+				}
+				else {
+					NTT_result[j] = even + twiddle_factor;
+				}
+				if (even >= twiddle_factor) {
+					NTT_result[j + size/2] = (even - twiddle_factor) % p;
+				}
+				else {
+					__uint128_t temp = (__uint128_t) even + p - twiddle_factor;
+					NTT_result[j + size/2] = temp % p;
+				}
+			}
+		}
+	}
+}
+
+void get_final_result_NTT_fast(charArray* result_buffer, unsigned long long* INTT_result, int n, int len1, int len2) {
+	int len = len1 + len2;
+	if (DEBUG >= 2) printf("len = %d, n = %d\n", len, n);
+	result_buffer->list[len] = '\0';
+	unsigned long long carry = 0;
+	for (int i = 0; i < n && i < (len - 1); i++) {
+		unsigned long long sum = INTT_result[i] + carry;
+		int digit = sum % 10;
+		carry = sum / 10;
+		result_buffer->list[len - i - 1] = digit + '0';
+	}
+	if (carry > 0) {
+		result_buffer->list[0] = carry + '0';
+		result_buffer->length = len;
+	}
+	else {
+		for (int i = 1; i < len + 1; i++) {
+			result_buffer->list[i - 1] = result_buffer->list[i];
+		}
+		result_buffer->length = len - 1;
+	}
+}
+
+charArray* mult_NTT_fast(charArray* num1, charArray* num2) {
+	if ((num1->length == 1 && num1->list[0] == '0') || (num2->length == 1 && num2->list[0] == '0')) {
+		return getStr("0");
+	}
+	int pre_n = next2pow(num1->length + num2->length - 1);
+	int coffs_scratch_len = 3 * pre_n;
+	unsigned long long* coffs_scratch_space = (unsigned long long*)malloc(sizeof(unsigned long long) * coffs_scratch_len);
+	charArray* result = (charArray*)malloc(sizeof(charArray));
+	result->list = (char*)malloc((num1->length + num2->length + 1) * sizeof(char));
+
+	mult_fast(result, coffs_scratch_space, coffs_scratch_len, num1, num2, pre_n);
+	free(coffs_scratch_space);
+
+	return result;
+}
+
+void mult_fast(charArray* result_buffer, unsigned long long* coffs_buffer, int coffs_buffer_len, charArray* num1, charArray* num2, int pre_n) {
+	// coffs_buffer_len is supposed to be 3*pre_n
+	int len1 = num1->length;
+	int len2 = num2->length;
+
+	int n = pre_n;
+	unsigned long long p = PRIME;
+	unsigned long long g = modpow(PRIM_ROOT_G, (p-1)/n, p);
+
+	DBG_HEADER("NTT MULTIPLICATION (Fast)");
+	DBG_VAL("num1 length", "%d digits", len1);
+	DBG_VAL("num2 length", "%d digits", len2);
+	DBG_VAL("padded size (n)", "%d", n);
+	DBG_VAL("prime (p)", "%llu", p);
+	DBG_VAL("primitive root (g)", "%llu", g);
+	DBG_SEP();
+
+	unsigned long long* coffs1 = coffs_buffer;
+	unsigned long long* coffs2 = coffs1 + (coffs_buffer_len / 3);
+	unsigned long long* Xs = coffs2 + (coffs_buffer_len / 3);
+
+	DBG_TIME_START();
+	get_coffs_NTT_fast(coffs1, num1, n);
+	get_coffs_NTT_fast(coffs2, num2, n);
+	DBG_TIME_END("coefficients");
+
+	DBG_ARRAY(print_longlong_array, "coffs1", coffs1, n);
+	DBG_ARRAY(print_longlong_array, "coffs2", coffs2, n);
+
+	nthRoots_NTT_fast(Xs, n, g, p);
+	DBG_ARRAY(print_longlong_array, "Xs", Xs, n);
+
+	DBG_TIME_START();
+	eval_NTT(Xs, coffs1, n, p);
+	eval_NTT(Xs, coffs2, n, p);
+	DBG_TIME_END("forward NTT");
+	unsigned long long* eval1 = coffs1;
+	unsigned long long* eval2 = coffs2;
+
+	DBG_ARRAY(print_longlong_array, "eval1", eval1, n);
+	DBG_ARRAY(print_longlong_array, "eval2", eval2, n);
+
+	DBG_TIME_START();
+	pointwise_mult_NTT(eval1, eval1, eval2, n, p);
+	DBG_TIME_END("pointwise multiply");
+	unsigned long long* mult_result = eval1;
+
+	DBG_ARRAY(print_longlong_array, "mult_result", mult_result, n);
+
+	unsigned long long g_inv = modinv_fermat(g, p);
+	DBG_VAL("g_inv", "%llu", g_inv);
+
+	nthRoots_NTT_inv(Xs, n, g_inv, p);
+	unsigned long long* Xs_inv = Xs;
+
+	DBG_ARRAY(print_longlong_array, "Xs_inv", Xs_inv, n);
+
+	DBG_TIME_START();
+	eval_INTT(Xs_inv, mult_result, n, p);
+	DBG_TIME_END("inverse NTT");
+	unsigned long long* INTT_eval = mult_result;
+
+	DBG_ARRAY(print_longlong_array, "unscaled_INTT_eval", INTT_eval, n);
+
+	unsigned long long n_inv = modinv_fermat(n, p);
+	DBG_VAL("n_inv", "%llu", n_inv);
+	for (int i = 0; i< n; i++) {
+		__uint128_t product = (__uint128_t) INTT_eval[i] * n_inv;
+		INTT_eval[i] = product % p;
+	}
+
+	DBG_ARRAY(print_longlong_array, "scaled_INTT_eval", INTT_eval, n);
+
+	DBG_TIME_START();
+	get_final_result_NTT_fast(result_buffer, INTT_eval, n, len1, len2);
+	DBG_TIME_END("carry & finalize");
+
+	DBG_SEP();
+}
+
+charArray* mypow_NTT_fast(charArray* num, int power) {
+	DBG_POW_HEADER("EXPONENTIATION NTT");
+	int coffs_scratch_len = 3 * next2pow(power * num->length);
+	unsigned long long* coffs_scratch_space = (unsigned long long*)malloc(coffs_scratch_len * sizeof(unsigned long long));
+
+	charArray* scratch_space = (charArray*)malloc(sizeof(charArray));
+	scratch_space->list = (char*)malloc((power * num->length + 1) * sizeof(char));
+
+	charArray* result = (charArray*)malloc(sizeof(charArray));
+	result->list = (char*)malloc((power * num->length + 2) * sizeof(char));
+
+	power_fast(result, scratch_space, coffs_scratch_space, coffs_scratch_len, num, power);
+	freecharArray(scratch_space);
+	free(coffs_scratch_space);
+	return result;
+}
+
+void power_fast(charArray* result_buffer, charArray* scratch_space, unsigned long long* coffs_scratch_space, int coffs_scratch_len, charArray* num, int power) {
+	// coffs_scratch_len is supposed to be equal to 3 * next2pow(power * num->length - (power - 1))
+	sprintf(result_buffer->list, "%d", 1);
+	result_buffer->length = 1;
+	charArray* working_num = scratch_space;
+	sprintf(working_num->list, "%s", num->list);
+	working_num->length = num->length;
+	if (DEBUG >= 1 && DEBUG_OP == DBG_OP_POW) printf("  \033[36m➤\033[0m \033[90mworking_num:\033[0m \033[33m%s\033[0m (len=%d)\n", working_num->list, working_num->length);
+	while (power > 0) {
+		if (power % 2 == 0) {
+			int pre_n = next2pow(2 * working_num->length - 1);
+			if (DEBUG >= 1 && DEBUG_OP == DBG_OP_POW) printf("  \033[36m➤\033[0m \033[90mpre_n (even exp):\033[0m \033[33m%d\033[0m\n", pre_n);
+			mult_fast(working_num, coffs_scratch_space, coffs_scratch_len, working_num, working_num, pre_n);
+			power /= 2;
+		}
+		else {
+			int pre_n = next2pow(working_num->length + result_buffer->length - 1);
+			if (DEBUG >= 1 && DEBUG_OP == DBG_OP_POW) printf("  \033[36m➤\033[0m \033[90mpre_n (odd exp):\033[0m \033[33m%d\033[0m\n", pre_n);
+			mult_fast(result_buffer, coffs_scratch_space, coffs_scratch_len, result_buffer, working_num, pre_n);
+			power -= 1;
+		}
+	}
+}
+
+intArray* sieve_primes(int n) {
+	bool isprime[n + 1];
+	for (int i = 0; i < n + 1; i++) {
+		isprime[i] = true;
+	}
+	int size = (int)(n / log(n));
+	int* primes = (int*)malloc(size*sizeof(int));
+	if (!primes) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
+	if (primes == NULL) {
+		printf("Error : not enough space for primes\n");
+		exit(EXIT_FAILURE);
+	}
+	int index = 0;
+	for (int num = 2; num <= n; num++) {
+		if (isprime[num]) {
+			if (index < size) {
+				primes[index] = num;
+				index++;
+			}
+			else {
+				size += 5;
+				primes = (int*)realloc(primes, size*sizeof(int));
+				if (primes == NULL) {
+			printf("Error : not enough space for primes\n");
+			exit(EXIT_FAILURE);
+		}
+				primes[index] = num;
+				index++;
+			}
+			unsigned long long multiple = (unsigned long long) num * (unsigned long long) num;
+			if (multiple <= n) {
+				for (int mult = (int)multiple; mult <= n; mult += num) {
+					isprime[mult] = false;
+				}
+			}
+		}
+	}
+	intArray* result = (intArray*)malloc(sizeof(intArray));
+	if (!result) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
+	result->list = primes;
+	result->length = index;
+	return result;
+}
+
+intArray* get_primes_exps(intArray* primes, int n) {
+	int* exps = (int*)malloc(primes->length*sizeof(int));
+	if (!exps) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
+	for (int i = 0; i < primes->length; i++) {
+		int prime_count = n / primes->list[i];
+		int prime_counter = 0;
+		int trialExp = 1;
+		while (prime_count > 0) {
+			prime_counter += prime_count;
+			trialExp++;
+			prime_count = n / (int)(pow(primes->list[i], trialExp));
+		}
+		exps[i] = prime_counter;
+	}
+	intArray* result = (intArray*)malloc(sizeof(intArray));
+	if (!result) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
+	result->list = exps;
+	result->length = primes->length;
+	return result;
+}
+
+strArray* get_powered_primes_fast(intArray* primes, intArray* primesExps, int* prefix_digits_sum) {
+	int len = primes->length;
+	strArray* poweredPrimes = (strArray*)malloc(sizeof(strArray));
+	if (!poweredPrimes) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
+	poweredPrimes->length = len;
+	poweredPrimes->list = (charArray**)malloc(len * sizeof(charArray*));
+	if (!(poweredPrimes->list)) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
+
+	int MAX_POWERED_LEN = primesExps->list[0];
+	int coffs_scratch_len = 3 * next2pow(MAX_POWERED_LEN);
+	unsigned long long* coffs_scratch_space = (unsigned long long*)malloc(coffs_scratch_len * sizeof(unsigned long long));
+	int max_prime_size = ((int)log10(primes->list[len - 1])) + 1;
+	int scratch_size = MAX_POWERED_LEN + 1 + max_prime_size + 1;
+	charArray* scratch_buffer = (charArray*)malloc(sizeof(charArray));
+	scratch_buffer->list = (char* )malloc(scratch_size * sizeof(char));
+	if (!scratch_buffer) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
+	charArray* prime = (charArray*)malloc(sizeof(charArray));
+	prime->list = scratch_buffer->list + MAX_POWERED_LEN + 1;
+
+	for (int i = 0; i < len; i++) {
+		int prime_size = ((int)log10(primes->list[i])) + 1;
+		int result_size = prime_size * primesExps->list[i] + 2;
+		charArray* powered_prime = (charArray*)malloc(sizeof(charArray));
+		powered_prime->list = (char*)malloc(result_size * sizeof(char));
+		if (!powered_prime->list) {printf("Memory allocation failed at line: %d\n", __LINE__); exit(EXIT_FAILURE);}
+
+		sprintf(prime->list, "%d", primes->list[i]);
+		prime->length = prime_size;
+
+		power_fast(powered_prime, scratch_buffer, coffs_scratch_space, coffs_scratch_len, prime, primesExps->list[i]);
+		poweredPrimes->list[i] = powered_prime;
+		prefix_digits_sum[i + 1] = prefix_digits_sum[i] + poweredPrimes->list[i]->length;
+	}
+	free(coffs_scratch_space);
+	freecharArray(scratch_buffer);
+	free(prime);
+	return poweredPrimes;
+}
+
+void mulpowprimes_fast(charArray* result_buffer, unsigned long long* coffs_buffer, int coffs_buffer_len, strArray* powered_primes, int start, int end, int* prefix_digits_sum) {
+	// prefix_digits_sum is assumed to be of length = powered_primes->length + 1
+	int len = end - start;
+	if (len == 1) {
+		sprintf(result_buffer->list, "%s", powered_primes->list[start]->list);
+		result_buffer->length = powered_primes->list[start]->length;
+		if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+			print_truncated_str("copying", powered_primes->list[start], 20);
+			print_truncated_str("copied result", result_buffer, 20);
+		}
+	}
+	else if (len == 2) {
+		charArray* num1 = powered_primes->list[start];
+		charArray* num2 = powered_primes->list[start + 1];
+		if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+			print_truncated_str("multiplying (left)", num1, 20);
+			print_truncated_str("multiplying (right)", num2, 20);
+		}
+
+		int pre_n = next2pow(num1->length + num2->length - 1);
+		mult_fast(result_buffer, coffs_buffer, coffs_buffer_len, num1, num2, pre_n);
+		if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+			print_truncated_str("result of mult", result_buffer, 20);
+		}
+	}
+	else {
+		int mid = start + (end - start) / 2;
+		int left_length = prefix_digits_sum[mid] - prefix_digits_sum[start];
+		int right_length = prefix_digits_sum[end] - prefix_digits_sum[mid];
+		charArray* left = (charArray*)malloc(sizeof(charArray));
+		charArray* right = (charArray*)malloc(sizeof(charArray));
+		left->list = result_buffer->list;
+		right->list = left->list + left_length + 1;
+
+		mulpowprimes_fast(left, coffs_buffer, coffs_buffer_len, powered_primes, start, mid, prefix_digits_sum);
+		mulpowprimes_fast(right, coffs_buffer, coffs_buffer_len, powered_primes, mid, end, prefix_digits_sum);
+
+		left_length = left->length;
+		right_length = right->length;
+
+		int pre_n = next2pow(left_length + right_length - 1);
+		mult_fast(result_buffer, coffs_buffer, coffs_buffer_len, left, right, pre_n);
+		free(left); free(right);
+	}
+}
+
+size_t compute_result_space_factorial(int start, int end, int* prefix_digits_sum) {
+	int len = end - start;
+	if (len == 1) {
+		size_t result_length = prefix_digits_sum[end] - prefix_digits_sum[start] + 1;
+		return result_length;
+	}
+	else if (len == 2) {
+		size_t size1 = prefix_digits_sum[start + 1] - prefix_digits_sum[start] + 1;
+		size_t size2 = prefix_digits_sum[end] - prefix_digits_sum[start + 1] + 1;
+		size_t result_length = size1 + size2 + 1;
+		return result_length;
+	}
+	int mid = start + len / 2;
+	size_t left_size = compute_result_space_factorial(start, mid, prefix_digits_sum);
+	size_t right_size = compute_result_space_factorial(mid, end, prefix_digits_sum);
+	size_t result_size = left_size + right_size + 1;
+	return result_size;
+}
+
+charArray* factorial(int n) {
+	intArray* primes = sieve_primes(n);
+
+	if (DEBUG >= 2) print_int_array("primes", primes->list, primes->length);
+
+	intArray* primes_exps = get_primes_exps(primes, n);
+
+	if (DEBUG >= 2) print_int_array("primes' powers", primes_exps->list, primes_exps->length);
+
+	int prefix_digits_sum[primes->length + 1];
+	prefix_digits_sum[0] = 0;
+
+	DBG_FACT_HEADER("RAISING PRIMES TO EXPONENTS");
+	strArray* powered_primes = get_powered_primes_fast(primes, primes_exps, prefix_digits_sum);
+
+	if (DEBUG >= 1 && DEBUG_OP == DBG_OP_FACT) {
+		DBG_FACT_HEADER("PRIME POWER RESULTS");
+		for (int i = 0; i < powered_primes->length; i++) {
+			char prefix[64];
+			sprintf(prefix, "%d ^ %d", primes->list[i], primes_exps->list[i]);
+			print_truncated_str(prefix, powered_primes->list[i], 30);
+		}
+		DBG_FACT_HEADER("DIVIDE AND CONQUER TREE");
+	}
+
+	freeintArray(primes);
+	freeintArray(primes_exps);
+
+	int coffs_buffer_len = 3 * next2pow(prefix_digits_sum[powered_primes->length] - 1);
+	unsigned long long* coffs_buffer = (unsigned long long*)malloc((coffs_buffer_len) * sizeof(unsigned long long));
+	size_t factorial_result_size = compute_result_space_factorial(0, powered_primes->length, prefix_digits_sum);
+	charArray* factorial_result = (charArray*)malloc(sizeof(charArray));
+	factorial_result->list = (char*)malloc(factorial_result_size * sizeof(char));
+
+	mulpowprimes_fast(factorial_result, coffs_buffer, coffs_buffer_len, powered_primes, 0, powered_primes->length, prefix_digits_sum);
+
+	freestrArray(powered_primes);
+	free(coffs_buffer);
+
+	return factorial_result;
+}
+
