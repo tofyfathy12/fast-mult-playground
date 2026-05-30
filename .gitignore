@@ -1,3 +1,44 @@
+# Build artifacts
+*.o
+*.obj
 *.exe
-*.txt
+*.out
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.pdb
+*.ilk
+*.map
+*.d
+*.gch
+*.pch
+*.gcno
+*.gcda
+*.gcov
+*.profraw
+*.profdata
+*.stackdump
 
+# Build directories
+/build/
+/bin/
+/obj/
+/out/
+/dist/
+/cmake-build-*/
+/CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# IDE/editor
+.vscode/
+.vs/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
