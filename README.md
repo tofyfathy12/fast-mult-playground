@@ -2,7 +2,7 @@
   <img src="docs/assets/banner.png" alt="Fast Multiplication Playground Banner" width="800"/>
 </p> -->
 
-<h1 align="center">⚡ Fast Multiplication Playground</h1>
+<h1 align="center"> Fast Multiplication Playground</h1>
 
 <p align="center">
   <b>High-performance arbitrary-precision multiplication algorithms implemented in C</b>
@@ -25,7 +25,7 @@
 
 ---
 
-## 📖 Overview
+## Overview
 
 A collection of fast multiplication algorithms designed for **arbitrary-precision integer arithmetic** — numbers with hundreds of thousands (or even millions) of digits. The project explores the performance landscape from classical divide-and-conquer methods to advanced transform-based approaches, culminating in the computation of **100,000!** (a number with **456,574 digits**) in seconds.
 
@@ -36,21 +36,21 @@ A collection of fast multiplication algorithms designed for **arbitrary-precisio
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 | Feature | Description |
 |---|---|
-| 🔢 **Arbitrary Precision** | Multiply numbers with millions of digits — far beyond what native types support |
-| ⚡ **NTT Multiplication** | $O(N \log N)$ using the Number Theoretic Transform with exact integer arithmetic |
-| 🌊 **FFT Multiplication** | $O(N \log N)$ using the Fast Fourier Transform with complex roots of unity |
-| 🧮 **Karatsuba Multiplication** | $O(N^{1.585})$ divide-and-conquer — faster than textbook $O(N^2)$ for large inputs |
-| 🏭 **Fast Factorial** | Computes $n!$ via prime factorization + divide-and-conquer multiplication |
-| 🧵 **Multithreading Support** | Thread pool and pthread utilities (work in progress) |
-| 🔍 **NTT Prime Finder** | Python script to discover primes of the form $p = k \cdot 2^m + 1$ with small primitive roots |
+| **Arbitrary Precision** | Multiply numbers with millions of digits — far beyond what native types support |
+| **NTT Multiplication** | $O(N \log N)$ using the Number Theoretic Transform with exact integer arithmetic |
+| **FFT Multiplication** | $O(N \log N)$ using the Fast Fourier Transform with complex roots of unity |
+| **Karatsuba Multiplication** | $O(N^{1.585})$ divide-and-conquer — faster than textbook $O(N^2)$ for large inputs |
+| **Fast Factorial** | Computes $n!$ via prime factorization + divide-and-conquer multiplication |
+| **Multithreading Support** | Thread pool and pthread utilities (work in progress) |
+| **NTT Prime Finder** | Python script to discover primes of the form $p = k \cdot 2^m + 1$ with small primitive roots |
 
 ---
 
-## 📊 Algorithm Comparison
+## Algorithm Comparison
 
 <!-- <p align="center">
   <img src="docs/assets/algorithm_comparison.svg" alt="Algorithm Comparison Table" width="780"/>
@@ -63,10 +63,10 @@ A collection of fast multiplication algorithms designed for **arbitrary-precisio
 
 ---
 
-## 🏗️ Project Structure
+## Project Structure
 
 <details>
-<summary><b>📂 Click to expand full directory tree</b></summary>
+<summary><b>Click to expand full directory tree</b></summary>
 <br/>
 
 ```text
@@ -110,7 +110,7 @@ fast-mult-playground/
 
 ---
 
-## 🧠 How It Works
+## How It Works
 
 ### NTT Multiplication Pipeline
 
@@ -139,7 +139,7 @@ Computing $n!$ naively requires $n-1$ sequential multiplications. Instead, this 
 </p>
 
 <details>
-<summary><b>🔎 Step-by-step breakdown</b></summary>
+<summary><b>Step-by-step breakdown</b></summary>
 <br/>
 
 1. **Sieve primes** up to $n$ using the Sieve of Eratosthenes
@@ -153,7 +153,7 @@ This approach is dramatically faster because it minimizes the number of large-nu
 
 ---
 
-## 🛠️ Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -239,7 +239,7 @@ This searches for primes of the form $p = k \cdot 2^m + 1$ with small primitive 
 
 ---
 
-## 🚀 Performance Highlights
+## Performance Highlights
 
 The NTT v5 implementation can compute **100,000!** (a 456,574-digit number) in a matter of seconds on consumer hardware.
 
@@ -255,12 +255,12 @@ The NTT v5 implementation can compute **100,000!** (a 456,574-digit number) in a
 
 ---
 
-## 📈 Evolution of Implementations
+## Evolution of Implementations
 
 The NTT module went through **5 iterations** of optimization:
 
 <details>
-<summary><b>📜 Click to expand version history</b></summary>
+<summary><b>Click to expand version history</b></summary>
 <br/>
 
 | Version | Key Improvement |
@@ -278,7 +278,7 @@ The NTT module went through **5 iterations** of optimization:
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Potential areas for improvement:
 
@@ -292,7 +292,7 @@ Feel free to fork, experiment, and submit a pull request!
 
 ---
 
-## 📜 License
+## License
 
 This project is open-source and available for educational and recreational programming. No formal license has been specified yet.  
 Explore, learn, and compute faster!
