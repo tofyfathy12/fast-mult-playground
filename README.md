@@ -29,7 +29,6 @@
 ---
 
 ## Overview
-## Overview
 
 A collection of fast multiplication algorithms designed for **arbitrary-precision integer arithmetic** — numbers with hundreds of thousands (or even millions) of digits. The project explores the performance landscape from classical divide-and-conquer methods to advanced transform-based approaches, culminating in the computation of **100,000!** (a number with **456,574 digits**) in **~2.5 seconds**.
 
@@ -55,7 +54,6 @@ This repository was created to:
 ---
 
 ## Key Features
-## Key Features
 
 | Feature | Description |
 |---|---|
@@ -66,13 +64,7 @@ This repository was created to:
 | **Fast Factorial** | Computes $n!$ via prime factorization + divide-and-conquer multiplication |
 | **Multithreading Support** | Thread pool and pthread utilities (work in progress) |
 | **NTT Prime Finder** | Python script to discover primes of the form $p = k \cdot 2^m + 1$ with small primitive roots |
-| **Arbitrary Precision** | Multiply numbers with millions of digits — far beyond what native types support |
-| **NTT Multiplication** | $O(N \log N)$ using the Number Theoretic Transform with exact integer arithmetic |
-| **FFT Multiplication** | $O(N \log N)$ using the Fast Fourier Transform with complex roots of unity |
-| **Karatsuba Multiplication** | $O(N^{1.585})$ divide-and-conquer — faster than textbook $O(N^2)$ for large inputs |
-| **Fast Factorial** | Computes $n!$ via prime factorization + divide-and-conquer multiplication |
-| **Multithreading Support** | Thread pool and pthread utilities (work in progress) |
-| **NTT Prime Finder** | Python script to discover primes of the form $p = k \cdot 2^m + 1$ with small primitive roots |
+
 
 ---
 
@@ -119,7 +111,6 @@ fast-mult-playground/
 ---
 
 ## How It Works
-## How It Works
 
 ### NTT Multiplication Pipeline
 
@@ -148,7 +139,6 @@ Computing $n!$ naively requires $n-1$ sequential multiplications. Instead, this 
 </p>
 
 <details>
-<summary><b>Step-by-step breakdown</b></summary>
 <summary><b>Step-by-step breakdown</b></summary>
 <br/>
 
@@ -456,7 +446,6 @@ This project deepened my understanding of:
 ---
 
 ## Contributing
-## Contributing
 
 Contributions are welcome! Potential areas for improvement:
 
@@ -470,7 +459,6 @@ Feel free to fork, experiment, and submit a pull request!
 
 ---
 
-## License
 ## License
 
 This project is open-source and available for educational and recreational programming. No formal license has been specified yet.  
