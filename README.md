@@ -5,7 +5,7 @@
 <h1 align="center">Fast Multiplication Playground</h1>
 
 <p align="center">
-  <b>High-performance arbitrary-precision multiplication algorithms implemented in C</b>
+  <b>A collection of high-performance arbitrary-precision multiplication algorithms implemented in C to explore algorithm engineering, large integer arithmetic, and performance optimization.</b>
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@
 
 ## Overview
 
-A collection of fast multiplication algorithms designed for **arbitrary-precision integer arithmetic** — numbers with hundreds of thousands (or even millions) of digits. The project explores the performance landscape from classical divide-and-conquer methods to advanced transform-based approaches, culminating in the computation of **100,000!** (a number with **456,574 digits**) in **~2.5 seconds**.
+A collection of fast multiplication algorithms designed for **arbitrary-precision integer arithmetic** — numbers containing hundreds of thousands or even millions of decimal digits. The project explores the performance landscape from classical divide-and-conquer methods to advanced transform-based approaches, culminating in the computation of **100,000!** (a number with **456,574 digits**) in **~2.5 seconds**.
 
 ---
 
